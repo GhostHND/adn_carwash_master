@@ -1,0 +1,153 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'package:adn_carwash_master/main.dart';
+import 'package:adn_carwash_master/features/permissions/permissions_screen.dart';
+
+void main() {
+  group('ADN Publicidad Software Master - Permisos', () {
+    Future<void> openPermissions(WidgetTester tester) async {
+      await tester.binding.setSurfaceSize(const Size(1280, 950));
+
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      await tester.pumpWidget(const AdnCarWashMaster());
+
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(InkWell, 'Permisos'));
+
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('Abre la matriz desde el menu principal', (
+      WidgetTester tester,
+    ) async {
+      await openPermissions(tester);
+
+      expect(find.byType(PermissionsScreen), findsOneWidget);
+
+      expect(find.text('Matriz de permisos'), findsOneWidget);
+
+      expect(find.byKey(const Key('role_administrator')), findsOneWidget);
+
+      expect(find.byKey(const Key('role_operator')), findsOneWidget);
+
+      expect(find.byKey(const Key('role_viewer')), findsOneWidget);
+    });
+
+    testWidgets('El Administrador Master tiene permisos bloqueados', (
+      WidgetTester tester,
+    ) async {
+      await openPermissions(tester);
+
+      await tester.tap(find.byKey(const Key('role_administrator')));
+
+      await tester.pumpAndSettle();
+
+      final checkbox = tester.widget<Checkbox>(
+        find.byKey(const Key('permission_administrator_empresas_manage')),
+      );
+
+      expect(checkbox.value, isTrue);
+      expect(checkbox.onChanged, isNull);
+    });
+
+    testWidgets('Consulta Master solamente permite lectura', (
+      WidgetTester tester,
+    ) async {
+      await openPermissions(tester);
+
+      await tester.tap(find.byKey(const Key('role_viewer')));
+
+      await tester.pumpAndSettle();
+
+      final viewCheckbox = tester.widget<Checkbox>(
+        find.byKey(const Key('permission_viewer_empresas_view')),
+      );
+
+      final createCheckbox = tester.widget<Checkbox>(
+        find.byKey(const Key('permission_viewer_empresas_create')),
+      );
+
+      expect(viewCheckbox.value, isTrue);
+
+      expect(createCheckbox.value, isFalse);
+      expect(createCheckbox.onChanged, isNull);
+    });
+
+    testWidgets('Los permisos del operador pueden modificarse', (
+      WidgetTester tester,
+    ) async {
+      await openPermissions(tester);
+
+      final permission = find.byKey(
+        const Key('permission_operator_empresas_create'),
+      );
+
+      final original = tester.widget<Checkbox>(permission);
+
+      expect(original.value, isTrue);
+      expect(original.onChanged, isNotNull);
+
+      await tester.ensureVisible(permission);
+      await tester.tap(permission);
+
+      await tester.pumpAndSettle();
+
+      final updated = tester.widget<Checkbox>(permission);
+
+      expect(updated.value, isFalse);
+    });
+
+    testWidgets('Restablecer cambios recupera la configuracion inicial', (
+      WidgetTester tester,
+    ) async {
+      await openPermissions(tester);
+
+      final permission = find.byKey(
+        const Key('permission_operator_empresas_create'),
+      );
+
+      await tester.ensureVisible(permission);
+      await tester.tap(permission);
+
+      await tester.pumpAndSettle();
+
+      expect(tester.widget<Checkbox>(permission).value, isFalse);
+
+      final resetButton = find.byKey(const Key('reset_role_permissions'));
+
+      await tester.ensureVisible(resetButton);
+      await tester.tap(resetButton);
+
+      await tester.pumpAndSettle();
+
+      expect(tester.widget<Checkbox>(permission).value, isTrue);
+    });
+
+    testWidgets('La interfaz se adapta a una pantalla pequena', (
+      WidgetTester tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      await tester.pumpWidget(
+        const MaterialApp(home: Scaffold(body: PermissionsScreen())),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.byType(PermissionsScreen), findsOneWidget);
+
+      expect(find.text('Matriz de permisos'), findsOneWidget);
+
+      expect(tester.takeException(), isNull);
+    });
+  });
+}

@@ -1,0 +1,134 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'package:adn_carwash_master/main.dart';
+import 'package:adn_carwash_master/features/company_status/company_status_screen.dart';
+
+void main() {
+  group('ADN Publicidad Software Master - Estado de empresas', () {
+    test('Una empresa pendiente necesita suscripcion para activarse', () {
+      final withoutSubscription = CompanyStatusPolicy.nextStatus(
+        current: CompanyAccessStatus.pending,
+        action: CompanyStatusAction.activate,
+      );
+
+      final withSubscription = CompanyStatusPolicy.nextStatus(
+        current: CompanyAccessStatus.pending,
+        action: CompanyStatusAction.activate,
+        subscriptionEligible: true,
+      );
+
+      expect(withoutSubscription, isNull);
+
+      expect(withSubscription, CompanyAccessStatus.active);
+    });
+
+    test('Una empresa activa puede suspenderse', () {
+      final next = CompanyStatusPolicy.nextStatus(
+        current: CompanyAccessStatus.active,
+        action: CompanyStatusAction.suspend,
+      );
+
+      expect(next, CompanyAccessStatus.suspended);
+    });
+
+    test('La reactivacion requiere suscripcion habilitada', () {
+      final rejected = CompanyStatusPolicy.nextStatus(
+        current: CompanyAccessStatus.suspended,
+        action: CompanyStatusAction.reactivate,
+      );
+
+      final accepted = CompanyStatusPolicy.nextStatus(
+        current: CompanyAccessStatus.suspended,
+        action: CompanyStatusAction.reactivate,
+        subscriptionEligible: true,
+      );
+
+      expect(rejected, isNull);
+
+      expect(accepted, CompanyAccessStatus.active);
+    });
+
+    test('Una empresa archivada se restaura suspendida', () {
+      final next = CompanyStatusPolicy.nextStatus(
+        current: CompanyAccessStatus.archived,
+        action: CompanyStatusAction.restore,
+      );
+
+      expect(next, CompanyAccessStatus.suspended);
+    });
+
+    test('Una empresa archivada no se activa directamente', () {
+      final next = CompanyStatusPolicy.nextStatus(
+        current: CompanyAccessStatus.archived,
+        action: CompanyStatusAction.activate,
+        subscriptionEligible: true,
+      );
+
+      expect(next, isNull);
+    });
+
+    testWidgets('El menu abre Estado de empresas', (WidgetTester tester) async {
+      await tester.binding.setSurfaceSize(const Size(1280, 950));
+
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      await tester.pumpWidget(const AdnCarWashMaster());
+
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(InkWell, 'Estado de empresas'));
+
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CompanyStatusScreen), findsOneWidget);
+
+      expect(find.byKey(const Key('company_status_directory')), findsOneWidget);
+
+      expect(find.text('No hay empresas registradas'), findsOneWidget);
+    });
+
+    testWidgets('El modulo no inventa empresas', (WidgetTester tester) async {
+      await tester.binding.setSurfaceSize(const Size(1280, 950));
+
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      await tester.pumpWidget(
+        const MaterialApp(home: Scaffold(body: CompanyStatusScreen())),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('No hay empresas registradas'), findsOneWidget);
+
+      expect(
+        find.byKey(const Key('company_status_restore_rule')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('La pantalla se adapta a un telefono', (
+      WidgetTester tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      await tester.pumpWidget(
+        const MaterialApp(home: Scaffold(body: CompanyStatusScreen())),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CompanyStatusScreen), findsOneWidget);
+
+      expect(tester.takeException(), isNull);
+    });
+  });
+}

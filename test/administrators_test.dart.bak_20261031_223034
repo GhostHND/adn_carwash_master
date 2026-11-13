@@ -1,0 +1,183 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'package:adn_carwash_master/main.dart';
+import 'package:adn_carwash_master/features/administrators/administrators_screen.dart';
+
+void main() {
+  group('ADN CarWash Master - Administradores', () {
+    Future<void> openAdministrators(WidgetTester tester) async {
+      await tester.binding.setSurfaceSize(const Size(1280, 900));
+
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      await tester.pumpWidget(const AdnCarWashMaster());
+
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(InkWell, 'Administradores'));
+
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('Abre el directorio de administradores', (
+      WidgetTester tester,
+    ) async {
+      await openAdministrators(tester);
+
+      expect(find.byType(AdministratorsScreen), findsOneWidget);
+
+      expect(find.text('Directorio de administradores'), findsOneWidget);
+
+      expect(find.text('Nuevo administrador'), findsOneWidget);
+    });
+
+    testWidgets('Abre el formulario sin inventar empresas', (
+      WidgetTester tester,
+    ) async {
+      await openAdministrators(tester);
+
+      await tester.tap(find.text('Nuevo administrador'));
+
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AdministratorFormDialog), findsOneWidget);
+
+      expect(find.byKey(const Key('admin_name')), findsOneWidget);
+
+      expect(find.byKey(const Key('admin_email')), findsOneWidget);
+
+      expect(find.byKey(const Key('admin_phone')), findsOneWidget);
+
+      expect(find.text('Sin empresas registradas'), findsOneWidget);
+    });
+
+    testWidgets('Valida los campos obligatorios y el correo', (
+      WidgetTester tester,
+    ) async {
+      await openAdministrators(tester);
+
+      await tester.tap(find.text('Nuevo administrador'));
+
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Validar datos'));
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Este campo es obligatorio.'), findsOneWidget);
+
+      expect(find.text('Ingresa un correo electr\u00f3nico.'), findsOneWidget);
+
+      await tester.enterText(
+        find.byKey(const Key('admin_name')),
+        'Administrador de prueba',
+      );
+
+      await tester.enterText(
+        find.byKey(const Key('admin_email')),
+        'correo-invalido',
+      );
+
+      await tester.tap(find.text('Validar datos'));
+
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Ingresa un correo electr\u00f3nico v\u00e1lido.'),
+        findsOneWidget,
+      );
+
+      expect(find.byType(AdministratorFormDialog), findsOneWidget);
+    });
+
+    testWidgets('Valida el telefono cuando se ingresa', (
+      WidgetTester tester,
+    ) async {
+      await openAdministrators(tester);
+
+      await tester.tap(find.text('Nuevo administrador'));
+
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const Key('admin_name')),
+        'Administrador de prueba',
+      );
+
+      await tester.enterText(
+        find.byKey(const Key('admin_email')),
+        'administrador@ejemplo.com',
+      );
+
+      await tester.enterText(find.byKey(const Key('admin_phone')), '123');
+
+      await tester.tap(find.text('Validar datos'));
+
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Ingresa un tel\u00e9fono v\u00e1lido.'),
+        findsOneWidget,
+      );
+
+      expect(find.byType(AdministratorFormDialog), findsOneWidget);
+    });
+
+    testWidgets('Validar datos no registra un administrador', (
+      WidgetTester tester,
+    ) async {
+      await openAdministrators(tester);
+
+      await tester.tap(find.text('Nuevo administrador'));
+
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const Key('admin_name')),
+        'Administrador de prueba',
+      );
+
+      await tester.enterText(
+        find.byKey(const Key('admin_email')),
+        'administrador@ejemplo.com',
+      );
+
+      await tester.tap(find.text('Validar datos'));
+
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AdministratorFormDialog), findsNothing);
+
+      expect(find.text('No hay administradores para mostrar'), findsOneWidget);
+    });
+
+    testWidgets('El modulo funciona en pantallas pequenas', (
+      WidgetTester tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      await tester.pumpWidget(
+        const MaterialApp(home: Scaffold(body: AdministratorsScreen())),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AdministratorsScreen), findsOneWidget);
+
+      await tester.tap(find.text('Nuevo administrador'));
+
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AdministratorFormDialog), findsOneWidget);
+
+      expect(tester.takeException(), isNull);
+    });
+  });
+}

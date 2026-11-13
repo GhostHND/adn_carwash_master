@@ -1,0 +1,821 @@
+import 'package:flutter/material.dart';
+
+import '../../core/adn_colors.dart';
+import '../instances/instance_pricing.dart';
+import 'license_policy.dart';
+
+class LicenseControlScreen extends StatefulWidget {
+  const LicenseControlScreen({super.key});
+
+  @override
+  State<LicenseControlScreen> createState() => _LicenseControlScreenState();
+}
+
+class _LicenseControlScreenState extends State<LicenseControlScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _balanceController = TextEditingController();
+
+  DateTime? _dueDate;
+  int _graceDays = 7;
+  bool _administrativeHold = false;
+
+  PaymentControlDecision? _decision;
+
+  @override
+  void dispose() {
+    _balanceController.dispose();
+    super.dispose();
+  }
+
+  String _formatDate(DateTime date) {
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+
+    return '$day/$month/${date.year}';
+  }
+
+  Future<void> _selectDueDate() async {
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: _dueDate ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+      helpText: 'Fecha límite de pago',
+    );
+
+    if (selected != null && mounted) {
+      setState(() {
+        _dueDate = selected;
+        _decision = null;
+      });
+    }
+  }
+
+  String? _validateBalance(String? text) {
+    if (text == null || text.trim().isEmpty) {
+      return 'Ingresa el saldo pendiente.';
+    }
+
+    if (InstanceMoney.parse(text) == null) {
+      return 'Ingresa un importe válido con hasta dos decimales.';
+    }
+
+    return null;
+  }
+
+  void _evaluate() {
+    FocusScope.of(context).unfocus();
+
+    if (_formKey.currentState?.validate() != true) {
+      return;
+    }
+
+    if (_dueDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Selecciona una fecha límite de pago.')),
+      );
+      return;
+    }
+
+    final balance = InstanceMoney.parse(_balanceController.text);
+
+    if (balance == null) {
+      return;
+    }
+
+    final decision = LicensePaymentPolicy.evaluate(
+      today: DateTime.now(),
+      paymentDueDate: _dueDate,
+      outstandingCents: balance,
+      graceDays: _graceDays,
+      administrativelySuspended: _administrativeHold,
+      verified: true,
+    );
+
+    setState(() {
+      _decision = decision;
+    });
+  }
+
+  Color _stateColor(PaymentControlState state) {
+    switch (state) {
+      case PaymentControlState.noOutstandingBalance:
+        return const Color(0xFF22C55E);
+
+      case PaymentControlState.paymentPending:
+        return const Color(0xFFF5C000);
+
+      case PaymentControlState.gracePeriod:
+        return const Color(0xFFF59E0B);
+
+      case PaymentControlState.suspendedForPayment:
+      case PaymentControlState.administrativelySuspended:
+        return AdnColors.coral;
+
+      case PaymentControlState.unverified:
+        return AdnColors.muted;
+    }
+  }
+
+  String _stateDescription(PaymentControlDecision decision) {
+    switch (decision.state) {
+      case PaymentControlState.unverified:
+        return 'No existe información verificada '
+            'para tomar una decisión.';
+
+      case PaymentControlState.noOutstandingBalance:
+        return 'No hay restricciones por saldo pendiente. '
+            'La vigencia contractual deberá verificarse '
+            'por separado.';
+
+      case PaymentControlState.paymentPending:
+        return 'El cliente tiene un saldo pendiente, '
+            'pero todavía no ha finalizado el plazo '
+            'de pago y gracia.';
+
+      case PaymentControlState.gracePeriod:
+        return 'La fecha de pago venció. '
+            'La instancia se encuentra dentro '
+            'del plazo adicional permitido.';
+
+      case PaymentControlState.suspendedForPayment:
+        return 'Terminó el plazo autorizado para pagar. '
+            'El servidor deberá restringir las operaciones '
+            'de esta instancia cuando aplique '
+            'una decisión real y verificada.';
+
+      case PaymentControlState.administrativelySuspended:
+        return 'Existe una suspensión administrativa. '
+            'El pago por sí solo no puede quitarla: '
+            'requiere autorización de ADN Publicidad.';
+    }
+  }
+
+  String _customerNotice(PaymentControlDecision decision) {
+    if (decision.state == PaymentControlState.paymentPending ||
+        decision.state == PaymentControlState.gracePeriod) {
+      final days = decision.daysUntilSuspension ?? 0;
+
+      return 'Su suscripción tiene un saldo pendiente de '
+          '${InstanceMoney.format(decision.outstandingCents)}. '
+          'Tiempo restante antes de la suspensión: '
+          '$days ${days == 1 ? 'día' : 'días'}. '
+          'Para evitar la interrupción del servicio, '
+          'realice el pago o contacte con '
+          'atención al cliente de ADN Publicidad.';
+    }
+
+    if (decision.state == PaymentControlState.suspendedForPayment) {
+      return 'Sistema temporalmente suspendido '
+          'por falta de pago. '
+          'Sus datos no deben eliminarse por esta causa. '
+          'Contacte con atención al cliente '
+          'de ADN Publicidad para solicitar '
+          'la reactivación.';
+    }
+
+    if (decision.state == PaymentControlState.administrativelySuspended) {
+      return 'Sistema temporalmente suspendido. '
+          'Contacte con atención al cliente '
+          'de ADN Publicidad para revisar '
+          'el estado de su cuenta.';
+    }
+
+    return 'No corresponde mostrar un aviso '
+        'de pago o suspensión en este escenario.';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final mobile = constraints.maxWidth < 620;
+        final padding = mobile ? 18.0 : 29.0;
+        final available = constraints.maxWidth - padding * 2;
+
+        final columns = available >= 960
+            ? 3
+            : available >= 560
+            ? 2
+            : 1;
+
+        final cardWidth = (available - 14 * (columns - 1)) / columns;
+
+        return SingleChildScrollView(
+          padding: EdgeInsets.all(padding),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Control de licencias',
+                style: TextStyle(
+                  color: AdnColors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Vencimientos, pagos pendientes '
+                'y suspensión por instancia.',
+                style: TextStyle(color: AdnColors.muted, fontSize: 13),
+              ),
+
+              const SizedBox(height: 25),
+
+              Wrap(
+                spacing: 14,
+                runSpacing: 14,
+                children: [
+                  _LicenseMetric(
+                    width: cardWidth,
+                    title: 'Licencias verificadas',
+                    icon: Icons.verified_user_outlined,
+                    color: AdnColors.turquoise,
+                  ),
+                  _LicenseMetric(
+                    width: cardWidth,
+                    title: 'Pagos pendientes',
+                    icon: Icons.payments_outlined,
+                    color: const Color(0xFFF5C000),
+                  ),
+                  _LicenseMetric(
+                    width: cardWidth,
+                    title: 'Instancias suspendidas',
+                    icon: Icons.lock_outline_rounded,
+                    color: AdnColors.coral,
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 24),
+
+              const _NoticePanel(),
+
+              const SizedBox(height: 24),
+
+              _buildSimulator(),
+
+              const SizedBox(height: 24),
+
+              const _RulesPanel(),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSimulator() {
+    return Container(
+      key: const Key('license_simulator'),
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: AdnColors.panel,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AdnColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Simulador de vencimientos',
+            style: TextStyle(
+              color: AdnColors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Introduce datos hipotéticos para '
+            'comprobar las reglas de acceso. '
+            'No modifica ninguna suscripción.',
+            style: TextStyle(color: AdnColors.muted, fontSize: 12, height: 1.6),
+          ),
+
+          const SizedBox(height: 23),
+
+          Form(
+            key: _formKey,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final wide = constraints.maxWidth >= 560;
+
+                final balance = Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const _FieldLabel('Saldo pendiente (L)'),
+                    TextFormField(
+                      key: const Key('license_balance'),
+                      controller: _balanceController,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      validator: _validateBalance,
+                      onChanged: (_) {
+                        setState(() {
+                          _decision = null;
+                        });
+                      },
+                      decoration: _decoration(
+                        'Ej. 850.00',
+                        Icons.payments_outlined,
+                      ),
+                    ),
+                  ],
+                );
+
+                final dueDate = Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const _FieldLabel('Fecha límite de pago'),
+                    OutlinedButton.icon(
+                      key: const Key('license_due_date'),
+                      onPressed: _selectDueDate,
+                      icon: const Icon(Icons.calendar_month_outlined, size: 19),
+                      label: Text(
+                        _dueDate == null
+                            ? 'Seleccionar fecha'
+                            : _formatDate(_dueDate!),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        alignment: Alignment.centerLeft,
+                        foregroundColor: AdnColors.white,
+                        side: const BorderSide(color: AdnColors.border),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 15,
+                          vertical: 17,
+                        ),
+                        minimumSize: const Size(double.infinity, 52),
+                      ),
+                    ),
+                  ],
+                );
+
+                if (wide) {
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: balance),
+                      const SizedBox(width: 16),
+                      Expanded(child: dueDate),
+                    ],
+                  );
+                }
+
+                return Column(
+                  children: [balance, const SizedBox(height: 18), dueDate],
+                );
+              },
+            ),
+          ),
+
+          const SizedBox(height: 19),
+
+          const _FieldLabel('Plazo de gracia'),
+
+          DropdownButtonFormField<int>(
+            key: const Key('license_grace_days'),
+            initialValue: _graceDays,
+            isExpanded: true,
+            dropdownColor: AdnColors.panel,
+            decoration: _decoration('Días de gracia', Icons.schedule_rounded),
+            items: const [
+              DropdownMenuItem(value: 0, child: Text('Sin días de gracia')),
+              DropdownMenuItem(value: 3, child: Text('3 días')),
+              DropdownMenuItem(value: 5, child: Text('5 días')),
+              DropdownMenuItem(value: 7, child: Text('7 días')),
+              DropdownMenuItem(value: 15, child: Text('15 días')),
+            ],
+            onChanged: (value) {
+              if (value == null) return;
+
+              setState(() {
+                _graceDays = value;
+                _decision = null;
+              });
+            },
+          ),
+
+          const SizedBox(height: 17),
+
+          Container(
+            decoration: BoxDecoration(
+              color: AdnColors.background,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AdnColors.border),
+            ),
+            child: SwitchListTile.adaptive(
+              key: const Key('license_administrative_hold'),
+              title: const Text(
+                'Simular suspensión administrativa',
+                style: TextStyle(
+                  color: AdnColors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              subtitle: const Text(
+                'Se mantiene hasta que ADN Publicidad '
+                'autorice su levantamiento.',
+                style: TextStyle(color: AdnColors.muted, fontSize: 11),
+              ),
+              value: _administrativeHold,
+              activeTrackColor: AdnColors.turquoise,
+              onChanged: (value) {
+                setState(() {
+                  _administrativeHold = value;
+                  _decision = null;
+                });
+              },
+            ),
+          ),
+
+          const SizedBox(height: 19),
+
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              key: const Key('license_evaluate'),
+              onPressed: _evaluate,
+              icon: const Icon(Icons.rule_rounded, size: 19),
+              label: const Text('Evaluar escenario'),
+              style: FilledButton.styleFrom(
+                backgroundColor: AdnColors.turquoise,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 17),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          _buildResult(),
+        ],
+      ),
+    );
+  }
+
+  InputDecoration _decoration(String hint, IconData icon) {
+    OutlineInputBorder border(Color color) {
+      return OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: color),
+      );
+    }
+
+    return InputDecoration(
+      hintText: hint,
+      prefixIcon: Icon(icon, color: AdnColors.muted, size: 20),
+      hintStyle: const TextStyle(color: AdnColors.muted, fontSize: 12),
+      filled: true,
+      fillColor: AdnColors.background,
+      enabledBorder: border(AdnColors.border),
+      focusedBorder: border(AdnColors.turquoise),
+      errorBorder: border(AdnColors.coral),
+      focusedErrorBorder: border(AdnColors.coral),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+    );
+  }
+
+  Widget _buildResult() {
+    final decision = _decision;
+
+    if (decision == null) {
+      return Container(
+        key: const Key('license_no_simulation'),
+        width: double.infinity,
+        padding: const EdgeInsets.all(19),
+        decoration: BoxDecoration(
+          color: AdnColors.background,
+          borderRadius: BorderRadius.circular(13),
+          border: Border.all(color: AdnColors.border),
+        ),
+        child: const Text(
+          'Sin simulación ejecutada. '
+          'Completa los datos y selecciona '
+          '«Evaluar escenario».',
+          style: TextStyle(color: AdnColors.muted, fontSize: 12, height: 1.6),
+        ),
+      );
+    }
+
+    final color = _stateColor(decision.state);
+
+    return Container(
+      key: const Key('license_simulation_result'),
+      width: double.infinity,
+      padding: const EdgeInsets.all(19),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Resultado hipotético',
+            style: TextStyle(
+              color: AdnColors.muted,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+
+          const SizedBox(height: 10),
+
+          Text(
+            decision.label,
+            style: TextStyle(
+              color: color,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+
+          const SizedBox(height: 11),
+
+          Text(
+            _stateDescription(decision),
+            style: const TextStyle(
+              color: AdnColors.white,
+              fontSize: 12,
+              height: 1.7,
+            ),
+          ),
+
+          if (decision.daysUntilSuspension != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              'Días restantes hasta el final '
+              'del plazo: '
+              '${decision.daysUntilSuspension}',
+              style: const TextStyle(
+                color: AdnColors.turquoiseLight,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+
+          if (decision.graceDeadline != null &&
+              decision.outstandingCents > 0) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Último día del plazo: '
+              '${_formatDate(decision.graceDeadline!)}',
+              style: const TextStyle(color: AdnColors.muted, fontSize: 12),
+            ),
+          ],
+
+          const SizedBox(height: 17),
+          const Divider(color: AdnColors.border),
+          const SizedBox(height: 12),
+
+          const Text(
+            'Mensaje previsto para el cliente',
+            style: TextStyle(
+              color: AdnColors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+
+          const SizedBox(height: 10),
+
+          Text(
+            _customerNotice(decision),
+            key: const Key('license_customer_notice'),
+            style: const TextStyle(
+              color: AdnColors.muted,
+              fontSize: 12,
+              height: 1.7,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FieldLabel extends StatelessWidget {
+  final String text;
+
+  const _FieldLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 9),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: AdnColors.white,
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
+class _LicenseMetric extends StatelessWidget {
+  final double width;
+  final String title;
+  final IconData icon;
+  final Color color;
+
+  const _LicenseMetric({
+    required this.width,
+    required this.title,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AdnColors.panel,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AdnColors.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 43,
+            height: 43,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(11),
+            ),
+            child: Icon(icon, color: color, size: 22),
+          ),
+          const SizedBox(width: 13),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: AdnColors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 7),
+                const Text(
+                  'Sin conectar',
+                  style: TextStyle(color: AdnColors.muted, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NoticePanel extends StatelessWidget {
+  const _NoticePanel();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(17),
+      decoration: BoxDecoration(
+        color: AdnColors.turquoise.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: AdnColors.turquoise.withValues(alpha: 0.20)),
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.info_outline_rounded,
+            color: AdnColors.turquoiseLight,
+            size: 21,
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'El control real de licencias todavía no está '
+              'conectado. El simulador permite comprobar '
+              'las reglas de vencimiento sin afectar '
+              'clientes, suscripciones ni instalaciones. '
+              'Las decisiones reales deberán proceder '
+              'del servidor central.',
+              style: TextStyle(
+                color: AdnColors.white,
+                fontSize: 12,
+                height: 1.6,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RulesPanel extends StatelessWidget {
+  const _RulesPanel();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(21),
+      decoration: BoxDecoration(
+        color: AdnColors.panel,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AdnColors.border),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Condiciones del control central',
+            style: TextStyle(
+              color: AdnColors.white,
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          SizedBox(height: 14),
+          _RuleRow(
+            icon: Icons.dns_rounded,
+            text:
+                'Cada licencia se asociará '
+                'a una instancia específica.',
+          ),
+          _RuleRow(
+            icon: Icons.notifications_active_outlined,
+            text:
+                'Los avisos de pago se mostrarán '
+                'a los administradores autorizados.',
+          ),
+          _RuleRow(
+            icon: Icons.lock_outline_rounded,
+            text:
+                'La suspensión restringirá '
+                'operaciones, pero no eliminará datos.',
+          ),
+          _RuleRow(
+            icon: Icons.verified_user_outlined,
+            text:
+                'El backend comprobará tanto '
+                'la autorización como la vigencia '
+                'del contrato.',
+          ),
+          _RuleRow(
+            icon: Icons.cloud_off_outlined,
+            text:
+                'Una falla de conexión con Master '
+                'no se interpretará automáticamente '
+                'como falta de pago.',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RuleRow extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _RuleRow({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: AdnColors.turquoiseLight, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(
+                color: AdnColors.muted,
+                fontSize: 12,
+                height: 1.6,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

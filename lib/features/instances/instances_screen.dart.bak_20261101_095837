@@ -1,0 +1,1060 @@
+import 'package:flutter/material.dart';
+
+import '../../core/adn_colors.dart';
+import '../../core/master_identity.dart';
+import 'instance_pricing.dart';
+
+class InstancesScreen extends StatelessWidget {
+  const InstancesScreen({super.key});
+
+  Future<void> _openForm(BuildContext context) async {
+    final validated = await showDialog<bool>(
+      context: context,
+      builder: (_) => const InstanceFormDialog(),
+    );
+
+    if (!context.mounted || validated != true) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Borrador validado. No se creó ninguna instancia '
+          'ni se contrató dominio o hosting. '
+          'La vinculación con clientes y el registro real '
+          'requieren el servidor central.',
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final mobile = constraints.maxWidth < 620;
+        final padding = mobile ? 18.0 : 29.0;
+        final available = constraints.maxWidth - padding * 2;
+
+        final columns = available >= 960
+            ? 3
+            : available >= 560
+            ? 2
+            : 1;
+
+        final cardWidth = (available - 14 * (columns - 1)) / columns;
+
+        return SingleChildScrollView(
+          padding: EdgeInsets.all(padding),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (mobile)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const _InstanceHeading(),
+                    const SizedBox(height: 18),
+                    SizedBox(
+                      width: double.infinity,
+                      child: _NewInstanceButton(
+                        onPressed: () => _openForm(context),
+                      ),
+                    ),
+                  ],
+                )
+              else
+                Row(
+                  children: [
+                    const Expanded(child: _InstanceHeading()),
+                    const SizedBox(width: 16),
+                    _NewInstanceButton(onPressed: () => _openForm(context)),
+                  ],
+                ),
+
+              const SizedBox(height: 25),
+
+              Wrap(
+                spacing: 14,
+                runSpacing: 14,
+                children: [
+                  _InstanceMetric(
+                    width: cardWidth,
+                    title: 'Instancias contratadas',
+                    icon: Icons.dns_rounded,
+                    color: AdnColors.turquoise,
+                  ),
+                  _InstanceMetric(
+                    width: cardWidth,
+                    title: 'Instancias activas',
+                    icon: Icons.verified_rounded,
+                    color: const Color(0xFF22C55E),
+                  ),
+                  _InstanceMetric(
+                    width: cardWidth,
+                    title: 'Licencias suspendidas',
+                    icon: Icons.lock_clock_rounded,
+                    color: AdnColors.coral,
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 24),
+
+              const _InstanceNotice(),
+
+              const SizedBox(height: 24),
+
+              const _InstanceDirectory(),
+
+              const SizedBox(height: 24),
+
+              const _InstanceArchitecture(),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _InstanceHeading extends StatelessWidget {
+  const _InstanceHeading();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Instancias de software',
+          style: TextStyle(
+            color: AdnColors.white,
+            fontSize: 28,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        SizedBox(height: 7),
+        Text(
+          'Implementaciones, dominios, hosting '
+          'y licencias por cliente.',
+          style: TextStyle(color: AdnColors.muted, fontSize: 13),
+        ),
+      ],
+    );
+  }
+}
+
+class _NewInstanceButton extends StatelessWidget {
+  final VoidCallback onPressed;
+
+  const _NewInstanceButton({required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton.icon(
+      onPressed: onPressed,
+      icon: const Icon(Icons.add_to_queue_rounded, size: 19),
+      label: const Text('Nueva instancia'),
+      style: FilledButton.styleFrom(
+        backgroundColor: AdnColors.turquoise,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 17),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+}
+
+class _InstanceMetric extends StatelessWidget {
+  final double width;
+  final String title;
+  final IconData icon;
+  final Color color;
+
+  const _InstanceMetric({
+    required this.width,
+    required this.title,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AdnColors.panel,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AdnColors.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 43,
+            height: 43,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(11),
+            ),
+            child: Icon(icon, color: color, size: 22),
+          ),
+          const SizedBox(width: 13),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: AdnColors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 7),
+                const Text(
+                  'Sin conectar',
+                  style: TextStyle(color: AdnColors.muted, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InstanceNotice extends StatelessWidget {
+  const _InstanceNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AdnColors.turquoise.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: AdnColors.turquoise.withValues(alpha: 0.20)),
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.info_outline_rounded,
+            color: AdnColors.turquoiseLight,
+            size: 21,
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Cada cliente podrá tener varias instancias '
+              'de diferentes productos. Cada instancia '
+              'tendrá sus propios recursos, suscripción '
+              'y control de licencia. '
+              'Todavía no hay instalaciones registradas.',
+              style: TextStyle(
+                color: AdnColors.white,
+                fontSize: 12,
+                height: 1.6,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InstanceDirectory extends StatelessWidget {
+  const _InstanceDirectory();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const Key('instances_directory'),
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AdnColors.panel,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AdnColors.border),
+      ),
+      child: Column(
+        children: [
+          const Padding(
+            padding: EdgeInsets.all(22),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Directorio de instancias',
+                    style: TextStyle(
+                      color: AdnColors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                Icon(Icons.dns_outlined, color: AdnColors.muted),
+              ],
+            ),
+          ),
+          const Divider(height: 1, color: AdnColors.border),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 53),
+            child: Column(
+              children: [
+                Container(
+                  width: 74,
+                  height: 74,
+                  decoration: BoxDecoration(
+                    color: AdnColors.turquoise.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: const Icon(
+                    Icons.dns_rounded,
+                    color: AdnColors.turquoise,
+                    size: 35,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                const Text(
+                  'Sin instancias registradas',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: AdnColors.white,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 480),
+                  child: const Text(
+                    'Aquí aparecerán los sistemas contratados, '
+                    'su producto, cliente, dominio, hosting, '
+                    'plan y estado de licencia.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: AdnColors.muted,
+                      fontSize: 12,
+                      height: 1.7,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InstanceArchitecture extends StatelessWidget {
+  const _InstanceArchitecture();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(21),
+      decoration: BoxDecoration(
+        color: AdnColors.panel,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AdnColors.border),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Recursos independientes por instancia',
+            style: TextStyle(
+              color: AdnColors.white,
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          SizedBox(height: 12),
+          Text(
+            'El dominio, el hosting y la base de datos '
+            'se asociarán a cada instalación. '
+            'La base de datos operativa permanecerá '
+            'separada de Software Master. '
+            'Las credenciales y llaves de licencia '
+            'no se almacenarán en estos formularios. '
+            'Master administrará las autorizaciones '
+            'a través de un servicio central seguro.',
+            style: TextStyle(color: AdnColors.muted, fontSize: 12, height: 1.7),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================================
+// FORMULARIO PRELIMINAR
+// ============================================================
+
+class InstanceFormDialog extends StatefulWidget {
+  const InstanceFormDialog({super.key});
+
+  @override
+  State<InstanceFormDialog> createState() => _InstanceFormDialogState();
+}
+
+class _InstanceFormDialogState extends State<InstanceFormDialog> {
+  final _formKey = GlobalKey<FormState>();
+
+  final _name = TextEditingController();
+  final _domain = TextEditingController();
+  final _hostingProvider = TextEditingController();
+
+  final _softwareCharge = TextEditingController();
+  final _hostingCost = TextEditingController();
+  final _hostingCharge = TextEditingController();
+  final _domainCost = TextEditingController();
+  final _domainCharge = TextEditingController();
+
+  String _plan = 'Básico';
+
+  @override
+  void dispose() {
+    for (final controller in [
+      _name,
+      _domain,
+      _hostingProvider,
+      _softwareCharge,
+      _hostingCost,
+      _hostingCharge,
+      _domainCost,
+      _domainCharge,
+    ]) {
+      controller.dispose();
+    }
+
+    super.dispose();
+  }
+
+  String? _required(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Este campo es obligatorio.';
+    }
+    return null;
+  }
+
+  String? _validateDomain(String? value) {
+    final domain = (value ?? '').trim().toLowerCase();
+
+    if (domain.isEmpty) {
+      return null;
+    }
+
+    final valid = RegExp(
+      r'^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$',
+    ).hasMatch(domain);
+
+    if (!valid) {
+      return 'Ingresa un dominio válido, sin https:// ni rutas.';
+    }
+
+    return null;
+  }
+
+  String? _validateMoney(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return null;
+    }
+
+    if (InstanceMoney.parse(value) == null) {
+      return 'Usa un importe válido con hasta dos decimales.';
+    }
+
+    return null;
+  }
+
+  InputDecoration _decoration({required IconData icon, required String hint}) {
+    OutlineInputBorder border(Color color) {
+      return OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: color),
+      );
+    }
+
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(color: AdnColors.muted, fontSize: 12),
+      prefixIcon: Icon(icon, color: AdnColors.muted, size: 20),
+      filled: true,
+      fillColor: AdnColors.background,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      enabledBorder: border(AdnColors.border),
+      focusedBorder: border(AdnColors.turquoise),
+      errorBorder: border(AdnColors.coral),
+      focusedErrorBorder: border(AdnColors.coral),
+    );
+  }
+
+  Widget _label(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 9),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: AdnColors.white,
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+
+  Widget _textField({
+    required Key key,
+    required String label,
+    required TextEditingController controller,
+    required IconData icon,
+    required String hint,
+    String? Function(String?)? validator,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _label(label),
+        TextFormField(
+          key: key,
+          controller: controller,
+          validator: validator,
+          style: const TextStyle(color: AdnColors.white, fontSize: 13),
+          decoration: _decoration(icon: icon, hint: hint),
+        ),
+      ],
+    );
+  }
+
+  Widget _moneyField({
+    required Key key,
+    required String label,
+    required TextEditingController controller,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _label(label),
+        TextFormField(
+          key: key,
+          controller: controller,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          validator: _validateMoney,
+          onChanged: (_) => setState(() {}),
+          style: const TextStyle(color: AdnColors.white, fontSize: 13),
+          decoration: _decoration(
+            icon: Icons.attach_money_rounded,
+            hint: 'L 0.00',
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _pair(Widget first, Widget second, bool twoColumns) {
+    if (!twoColumns) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [first, const SizedBox(height: 17), second],
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: first),
+        const SizedBox(width: 16),
+        Expanded(child: second),
+      ],
+    );
+  }
+
+  Widget _unavailableClient() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _label('Cliente asociado *'),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 17),
+          decoration: BoxDecoration(
+            color: AdnColors.background,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AdnColors.border),
+          ),
+          child: const Row(
+            children: [
+              Icon(Icons.business_outlined, color: AdnColors.muted, size: 20),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Sin clientes registrados',
+                  style: TextStyle(color: AdnColors.muted, fontSize: 12),
+                ),
+              ),
+              Icon(
+                Icons.lock_outline_rounded,
+                color: AdnColors.muted,
+                size: 18,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _productAndPlan(bool twoColumns) {
+    final product = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _label('Producto de software'),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 17),
+          decoration: BoxDecoration(
+            color: AdnColors.background,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AdnColors.border),
+          ),
+          child: const Row(
+            children: [
+              Icon(
+                Icons.apps_rounded,
+                color: AdnColors.turquoiseLight,
+                size: 20,
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  MasterIdentity.firstProduct,
+                  style: TextStyle(color: AdnColors.white, fontSize: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+
+    final plan = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _label('Plan preliminar'),
+        DropdownButtonFormField<String>(
+          key: const Key('instance_plan'),
+          initialValue: _plan,
+          isExpanded: true,
+          dropdownColor: AdnColors.panel,
+          decoration: _decoration(
+            icon: Icons.workspace_premium_rounded,
+            hint: 'Seleccionar plan',
+          ),
+          items: const [
+            DropdownMenuItem(value: 'Básico', child: Text('Básico')),
+            DropdownMenuItem(value: 'Intermedio', child: Text('Intermedio')),
+            DropdownMenuItem(value: 'Pro', child: Text('Pro')),
+          ],
+          onChanged: (value) {
+            if (value != null) {
+              setState(() => _plan = value);
+            }
+          },
+        ),
+      ],
+    );
+
+    return _pair(product, plan, twoColumns);
+  }
+
+  InstancePricing? get _preview {
+    final controllers = [
+      _softwareCharge,
+      _hostingCost,
+      _hostingCharge,
+      _domainCost,
+      _domainCharge,
+    ];
+
+    if (controllers.any((controller) => controller.text.trim().isEmpty)) {
+      return null;
+    }
+
+    final amounts = controllers
+        .map((controller) => InstanceMoney.parse(controller.text))
+        .toList();
+
+    if (amounts.any((amount) => amount == null)) {
+      return null;
+    }
+
+    return InstancePricing(
+      softwareMonthlyChargeCents: amounts[0]!,
+      hostingMonthlyCostCents: amounts[1]!,
+      hostingMonthlyChargeCents: amounts[2]!,
+      domainAnnualCostCents: amounts[3]!,
+      domainAnnualChargeCents: amounts[4]!,
+    );
+  }
+
+  Widget _pricingSummary() {
+    final preview = _preview;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(17),
+      decoration: BoxDecoration(
+        color: AdnColors.turquoise.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: AdnColors.turquoise.withValues(alpha: 0.20)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Proyección económica',
+            style: TextStyle(
+              color: AdnColors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (preview == null)
+            const Text(
+              'Completa los cinco importes para revisar '
+              'la proyección. Puedes escribir 0 cuando '
+              'un concepto no tenga cargo.',
+              style: TextStyle(
+                color: AdnColors.muted,
+                fontSize: 12,
+                height: 1.6,
+              ),
+            )
+          else ...[
+            Text(
+              'Cargos al cliente por 12 meses: '
+              '${InstanceMoney.format(preview.customerAnnualChargeCents)}',
+              key: const Key('instance_total_yearly'),
+              style: const TextStyle(
+                color: AdnColors.turquoiseLight,
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 9),
+            Text(
+              'Equivalente mensual aproximado: '
+              '${InstanceMoney.format(preview.customerMonthlyEquivalentCents)}',
+              style: const TextStyle(color: AdnColors.white, fontSize: 12),
+            ),
+            const SizedBox(height: 9),
+            Text(
+              'Costo anual de infraestructura: '
+              '${InstanceMoney.format(preview.infrastructureAnnualCostCents)}',
+              style: const TextStyle(color: AdnColors.white, fontSize: 12),
+            ),
+            const SizedBox(height: 9),
+            Text(
+              'Diferencia antes de otros gastos: '
+              '${InstanceMoney.format(preview.preliminaryContributionCents)}',
+              style: const TextStyle(color: AdnColors.white, fontSize: 12),
+            ),
+          ],
+          const SizedBox(height: 13),
+          const Text(
+            'Proyección ilustrativa, no factura ni utilidad '
+            'neta. No incluye impuestos, cambios de precio, '
+            'soporte, operación o cargos de instalación.',
+            style: TextStyle(color: AdnColors.muted, fontSize: 11, height: 1.6),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _validate() {
+    FocusScope.of(context).unfocus();
+
+    if (_formKey.currentState?.validate() != true) {
+      return;
+    }
+
+    // Solo se revisan datos.
+    // No se registra una instancia, licencia o contrato.
+    Navigator.of(context).pop(true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final mobile = size.width < 620;
+
+    return Dialog(
+      backgroundColor: AdnColors.panel,
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: mobile ? 12 : 24,
+        vertical: 18,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: AdnColors.border),
+      ),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: 740,
+          maxHeight: size.height * 0.82,
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(mobile ? 16 : 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    Icons.add_to_queue_rounded,
+                    color: AdnColors.turquoiseLight,
+                    size: 30,
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Nueva instancia',
+                          style: TextStyle(
+                            color: AdnColors.white,
+                            fontSize: 19,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        SizedBox(height: 5),
+                        Text(
+                          'Configuración preliminar',
+                          style: TextStyle(
+                            color: AdnColors.muted,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Cerrar',
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      color: AdnColors.muted,
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+              const Divider(height: 1, color: AdnColors.border),
+
+              Flexible(
+                child: Form(
+                  key: _formKey,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final twoColumns = constraints.maxWidth >= 610;
+
+                      return SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const _FormHeading(
+                              'Identificación de la instancia',
+                            ),
+                            const SizedBox(height: 17),
+
+                            _textField(
+                              key: const Key('instance_name'),
+                              label: 'Nombre de la instancia *',
+                              controller: _name,
+                              icon: Icons.dns_outlined,
+                              hint: 'Ej. Sede principal',
+                              validator: _required,
+                            ),
+
+                            const SizedBox(height: 17),
+                            _unavailableClient(),
+
+                            const SizedBox(height: 17),
+                            _productAndPlan(twoColumns),
+
+                            const SizedBox(height: 23),
+                            const Divider(color: AdnColors.border),
+                            const SizedBox(height: 17),
+
+                            const _FormHeading('Infraestructura independiente'),
+                            const SizedBox(height: 17),
+
+                            _pair(
+                              _textField(
+                                key: const Key('instance_domain'),
+                                label: 'Dominio',
+                                controller: _domain,
+                                icon: Icons.language_rounded,
+                                hint: 'ejemplo.hn',
+                                validator: _validateDomain,
+                              ),
+                              _textField(
+                                key: const Key('instance_host'),
+                                label: 'Proveedor de hosting',
+                                controller: _hostingProvider,
+                                icon: Icons.cloud_outlined,
+                                hint: 'Proveedor asignado',
+                              ),
+                              twoColumns,
+                            ),
+
+                            const SizedBox(height: 12),
+                            const Text(
+                              'La base de datos independiente '
+                              'se configurará desde el servidor. '
+                              'No ingreses contraseñas aquí.',
+                              style: TextStyle(
+                                color: AdnColors.muted,
+                                fontSize: 11,
+                                height: 1.5,
+                              ),
+                            ),
+
+                            const SizedBox(height: 23),
+                            const Divider(color: AdnColors.border),
+                            const SizedBox(height: 17),
+
+                            const _FormHeading('Costos y cargos en lempiras'),
+                            const SizedBox(height: 10),
+                            const Text(
+                              'Costo: lo pagamos al proveedor. '
+                              'Cargo: lo facturamos al cliente.',
+                              style: TextStyle(
+                                color: AdnColors.muted,
+                                fontSize: 12,
+                                height: 1.5,
+                              ),
+                            ),
+
+                            const SizedBox(height: 17),
+
+                            _moneyField(
+                              key: const Key('instance_software_fee'),
+                              label: 'Precio del software (mensual)',
+                              controller: _softwareCharge,
+                            ),
+
+                            const SizedBox(height: 17),
+
+                            _pair(
+                              _moneyField(
+                                key: const Key('instance_host_cost'),
+                                label: 'Costo del hosting (mensual)',
+                                controller: _hostingCost,
+                              ),
+                              _moneyField(
+                                key: const Key('instance_host_charge'),
+                                label: 'Cargo por hosting (mensual)',
+                                controller: _hostingCharge,
+                              ),
+                              twoColumns,
+                            ),
+
+                            const SizedBox(height: 17),
+
+                            _pair(
+                              _moneyField(
+                                key: const Key('instance_domain_cost'),
+                                label: 'Costo del dominio (anual)',
+                                controller: _domainCost,
+                              ),
+                              _moneyField(
+                                key: const Key('instance_domain_charge'),
+                                label: 'Cargo por dominio (anual)',
+                                controller: _domainCharge,
+                              ),
+                              twoColumns,
+                            ),
+
+                            const SizedBox(height: 23),
+                            _pricingSummary(),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+
+              const Divider(height: 1, color: AdnColors.border),
+              const SizedBox(height: 15),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AdnColors.white,
+                        side: const BorderSide(color: AdnColors.border),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: const Text('Cancelar'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton(
+                      key: const Key('instance_validate'),
+                      onPressed: _validate,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AdnColors.turquoise,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: const Text('Validar borrador'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FormHeading extends StatelessWidget {
+  final String text;
+
+  const _FormHeading(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        color: AdnColors.white,
+        fontSize: 16,
+        fontWeight: FontWeight.w800,
+      ),
+    );
+  }
+}

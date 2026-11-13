@@ -1,0 +1,29 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+
+import 'main.dart' show AdnCarWashMaster;
+
+// ============================================================
+// ADN PUBLICIDAD SOFTWARE MASTER
+// PUNTO DE ENTRADA PARA DESARROLLO
+// ============================================================
+
+void main() {
+  // Evitar que este punto de entrada se utilice
+  // accidentalmente en una compilacion de produccion.
+
+  if (kReleaseMode) {
+    throw StateError(
+      'Este punto de entrada es exclusivo '
+      'para desarrollo. Utiliza main.dart '
+      'para la version de produccion.',
+    );
+  }
+
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Durante el desarrollo abrimos directamente
+  // la aplicacion administrativa.
+
+  runApp(const AdnCarWashMaster(showFirstUseGuide: true));
+}

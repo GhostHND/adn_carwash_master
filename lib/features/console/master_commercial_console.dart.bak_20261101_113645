@@ -1,0 +1,539 @@
+import 'package:flutter/material.dart';
+
+import '../../core/adn_colors.dart';
+import '../commercial/product_plan_catalog.dart';
+import '../customers/companies_customer_hub.dart';
+import '../customers/master_customer_registry.dart';
+import '../instances/instance_pricing.dart';
+import '../instances/master_instance_registry.dart';
+import '../products/software_products_screen.dart';
+import '../subscriptions/linked_subscription_registry.dart';
+import '../subscriptions/linked_subscriptions_hub.dart';
+
+// ============================================================
+// ADN PUBLICIDAD SOFTWARE MASTER
+// PANTALLAS COMERCIALES UNIFICADAS
+// ============================================================
+
+class MasterConsoleCard extends StatelessWidget {
+  final Widget child;
+
+  const MasterConsoleCard({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AdnColors.panel,
+        borderRadius: BorderRadius.circular(17),
+        border: Border.all(color: AdnColors.border),
+      ),
+      child: child,
+    );
+  }
+}
+
+class MasterConsoleNotice extends StatelessWidget {
+  final String message;
+
+  const MasterConsoleNotice({super.key, required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: AdnColors.turquoise.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AdnColors.turquoise.withValues(alpha: 0.20)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.info_outline_rounded,
+            color: AdnColors.turquoiseLight,
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: AdnColors.white,
+                fontSize: 12,
+                height: 1.6,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================================
+// CLIENTES
+// ============================================================
+
+class MasterCustomersScreen extends StatelessWidget {
+  const MasterCustomersScreen({super.key});
+
+  Future<void> _addCustomer(BuildContext context) async {
+    final result = await showDialog<MasterCustomer>(
+      context: context,
+      builder: (_) => const MasterCustomerFormDialog(),
+    );
+
+    if (!context.mounted || result == null) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${result.displayName} registrado en esta sesión.'),
+      ),
+    );
+  }
+
+  Future<void> _viewCustomer(
+    BuildContext context,
+    MasterCustomer customer,
+  ) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: AdnColors.panel,
+          title: Text(
+            customer.displayName,
+            style: const TextStyle(color: AdnColors.white),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _CustomerDetail('Código', customer.id),
+              _CustomerDetail('Nombre legal', customer.legalName),
+              _CustomerDetail(
+                'Nombre comercial',
+                customer.tradeName.isEmpty ? 'No indicado' : customer.tradeName,
+              ),
+              _CustomerDetail(
+                'Correo',
+                customer.email.isEmpty ? 'No indicado' : customer.email,
+              ),
+              _CustomerDetail(
+                'Teléfono',
+                customer.phone.isEmpty ? 'No indicado' : customer.phone,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cerrar'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<List<MasterCustomer>>(
+      valueListenable: MasterCustomerRegistry.customers,
+      builder: (context, customers, _) {
+        final width = MediaQuery.sizeOf(context).width;
+        final compact = width < 720;
+
+        return SingleChildScrollView(
+          padding: EdgeInsets.all(compact ? 18 : 28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 16,
+                runSpacing: 14,
+                children: [
+                  const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Empresas y clientes',
+                        style: TextStyle(
+                          color: AdnColors.white,
+                          fontSize: 27,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      SizedBox(height: 7),
+                      Text(
+                        'Directorio comercial de ADN Publicidad.',
+                        style: TextStyle(color: AdnColors.muted, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                  FilledButton.icon(
+                    key: const Key('unified_customer_add'),
+                    onPressed: () => _addCustomer(context),
+                    icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
+                    label: const Text('Registrar cliente'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AdnColors.turquoise,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              MasterConsoleCard(
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.business_rounded,
+                      color: AdnColors.turquoiseLight,
+                    ),
+                    const SizedBox(width: 13),
+                    Expanded(
+                      child: Text(
+                        'Clientes registrados en sesión: '
+                        '${customers.length}',
+                        key: const Key('unified_customer_count'),
+                        style: const TextStyle(
+                          color: AdnColors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 17),
+              const MasterConsoleNotice(
+                message:
+                    'El directorio es compartido con Instancias. '
+                    'Sus registros todavía se conservan en memoria '
+                    'y no representan datos persistidos en MySQL.',
+              ),
+              const SizedBox(height: 24),
+              MasterConsoleCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Directorio de clientes',
+                      style: TextStyle(
+                        color: AdnColors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+                    const Divider(color: AdnColors.border),
+                    if (customers.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 40),
+                        child: Center(
+                          child: Text(
+                            'Sin clientes registrados',
+                            style: TextStyle(
+                              color: AdnColors.muted,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      for (final customer in customers) ...[
+                        Material(
+                          color: Colors.transparent,
+                          child: ListTile(
+                            key: Key('unified_customer_${customer.id}'),
+                            contentPadding: EdgeInsets.zero,
+                            leading: const Icon(
+                              Icons.business_outlined,
+                              color: AdnColors.turquoiseLight,
+                            ),
+                            title: Text(
+                              customer.displayName,
+                              style: const TextStyle(
+                                color: AdnColors.white,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            subtitle: Text(
+                              '${customer.id} · '
+                              '${customer.legalName}',
+                              style: const TextStyle(
+                                color: AdnColors.muted,
+                                fontSize: 11,
+                              ),
+                            ),
+                            trailing: const Icon(
+                              Icons.chevron_right_rounded,
+                              color: AdnColors.muted,
+                            ),
+                            onTap: () => _viewCustomer(context, customer),
+                          ),
+                        ),
+                        const Divider(color: AdnColors.border),
+                      ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _CustomerDetail extends StatelessWidget {
+  final String title;
+  final String value;
+
+  const _CustomerDetail(this.title, this.value);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Text(
+        '$title: $value',
+        style: const TextStyle(color: AdnColors.white, fontSize: 12),
+      ),
+    );
+  }
+}
+
+// ============================================================
+// SUSCRIPCIONES
+// ============================================================
+
+class MasterSubscriptionsScreen extends StatelessWidget {
+  const MasterSubscriptionsScreen({super.key});
+
+  Future<void> _addSubscription(BuildContext context) async {
+    final result = await showDialog<LinkedSubscriptionDraft>(
+      context: context,
+      builder: (_) => const LinkedSubscriptionFormDialog(),
+    );
+
+    if (!context.mounted || result == null) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Borrador vinculado. No se generaron cobros.'),
+      ),
+    );
+  }
+
+  String _date(DateTime date) {
+    return '${date.day.toString().padLeft(2, '0')}/'
+        '${date.month.toString().padLeft(2, '0')}/'
+        '${date.year}';
+  }
+
+  String _productName(String code) {
+    for (final product in softwareCatalog) {
+      if (product.code == code) return product.name;
+    }
+    return code;
+  }
+
+  String _planName(String productCode, String planCode) {
+    for (final plan in ProductPlanCatalog.forProduct(productCode)) {
+      if (plan.code == planCode) return plan.name;
+    }
+    return planCode;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<List<LinkedSubscriptionDraft>>(
+      valueListenable: LinkedSubscriptionRegistry.subscriptions,
+      builder: (context, subscriptions, _) {
+        final compact = MediaQuery.sizeOf(context).width < 720;
+
+        return SingleChildScrollView(
+          padding: EdgeInsets.all(compact ? 18 : 28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 16,
+                runSpacing: 15,
+                children: [
+                  const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Suscripciones',
+                        style: TextStyle(
+                          color: AdnColors.white,
+                          fontSize: 27,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      SizedBox(height: 7),
+                      Text(
+                        'Contratos asociados a instancias.',
+                        style: TextStyle(color: AdnColors.muted, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                  FilledButton.icon(
+                    key: const Key('unified_subscription_add'),
+                    onPressed: () => _addSubscription(context),
+                    icon: const Icon(Icons.add_card_rounded, size: 18),
+                    label: const Text('Nueva suscripción'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AdnColors.turquoise,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 23),
+              MasterConsoleCard(
+                child: Text(
+                  'Borradores vinculados: ${subscriptions.length}',
+                  key: const Key('unified_subscription_count'),
+                  style: const TextStyle(
+                    color: AdnColors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 17),
+              const MasterConsoleNotice(
+                message:
+                    'Los borradores no representan contratos '
+                    'activados, deuda pendiente ni licencias '
+                    'vigentes. La facturación y los vencimientos '
+                    'reales se gestionarán desde la API.',
+              ),
+              const SizedBox(height: 24),
+              MasterConsoleCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Directorio de suscripciones',
+                      style: TextStyle(
+                        color: AdnColors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+                    const Divider(color: AdnColors.border),
+                    if (subscriptions.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 45),
+                        child: Center(
+                          child: Text(
+                            'Sin suscripciones vinculadas',
+                            style: TextStyle(color: AdnColors.muted),
+                          ),
+                        ),
+                      )
+                    else
+                      for (final subscription in subscriptions) ...[
+                        _SubscriptionCard(
+                          draft: subscription,
+                          productName: _productName(subscription.productCode),
+                          planName: _planName(
+                            subscription.productCode,
+                            subscription.planCode,
+                          ),
+                          firstDueDate: _date(subscription.firstMonthlyDueDate),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _SubscriptionCard extends StatelessWidget {
+  final LinkedSubscriptionDraft draft;
+  final String productName;
+  final String planName;
+  final String firstDueDate;
+
+  const _SubscriptionCard({
+    required this.draft,
+    required this.productName,
+    required this.planName,
+    required this.firstDueDate,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final instance = MasterInstanceRegistry.findById(draft.instanceId);
+    final customer = MasterCustomerRegistry.findById(draft.customerId);
+
+    return Container(
+      key: Key('unified_subscription_${draft.id}'),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AdnColors.background,
+        border: Border.all(color: AdnColors.border),
+        borderRadius: BorderRadius.circular(13),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '${draft.id} · ${instance?.name ?? draft.instanceId}',
+            style: const TextStyle(
+              color: AdnColors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '${customer?.displayName ?? draft.customerId} · '
+            '$productName · $planName',
+            style: const TextStyle(color: AdnColors.muted, fontSize: 12),
+          ),
+          const SizedBox(height: 11),
+          Text(
+            '${InstanceMoney.format(draft.monthlyChargeCents)}/mes'
+            ' · Dominio: '
+            '${InstanceMoney.format(draft.domainAnnualChargeCents)}/año',
+            style: const TextStyle(
+              color: AdnColors.turquoiseLight,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 9),
+          Text(
+            'Primer cobro previsto: $firstDueDate'
+            ' · ${draft.statusLabel}',
+            style: const TextStyle(color: AdnColors.muted, fontSize: 11),
+          ),
+        ],
+      ),
+    );
+  }
+}

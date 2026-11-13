@@ -1,0 +1,93 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'package:adn_carwash_master/main.dart';
+import 'package:adn_carwash_master/features/monitoring/monitoring_screen.dart';
+
+void main() {
+  group('ADN Publicidad Software Master - Monitoreo', () {
+    testWidgets('El menu abre el modulo Monitoreo', (
+      WidgetTester tester,
+    ) async {
+      // Configurar resolucion de escritorio.
+      await tester.binding.setSurfaceSize(const Size(1280, 950));
+
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      // Iniciar la aplicacion.
+      await tester.pumpWidget(const AdnCarWashMaster());
+
+      await tester.pumpAndSettle();
+
+      // Localizar la opcion Monitoreo.
+      final monitoringMenu = find.widgetWithText(InkWell, 'Monitoreo');
+
+      expect(monitoringMenu, findsOneWidget);
+
+      // Desplazar el menu lateral hasta que
+      // Monitoreo se encuentre dentro del
+      // area visible.
+      await tester.ensureVisible(monitoringMenu);
+
+      await tester.pumpAndSettle();
+
+      // Seleccionar Monitoreo.
+      await tester.tap(monitoringMenu);
+
+      await tester.pumpAndSettle();
+
+      // Comprobar que se abrio el modulo.
+      expect(find.byType(MonitoringScreen), findsOneWidget);
+
+      expect(find.text('Estado de los servicios'), findsOneWidget);
+
+      expect(find.text('Registro de incidencias'), findsOneWidget);
+    });
+
+    testWidgets('No muestra resultados de monitoreo ficticios', (
+      WidgetTester tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(1280, 950));
+
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      await tester.pumpWidget(
+        const MaterialApp(home: Scaffold(body: MonitoringScreen())),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Sin verificaciones registradas'), findsOneWidget);
+
+      expect(find.byKey(const Key('monitoring_incidents')), findsOneWidget);
+
+      expect(find.text('No disponible'), findsOneWidget);
+    });
+
+    testWidgets('La pantalla funciona en telefonos', (
+      WidgetTester tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      await tester.pumpWidget(
+        const MaterialApp(home: Scaffold(body: MonitoringScreen())),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.byType(MonitoringScreen), findsOneWidget);
+
+      expect(find.text('Estado de los servicios'), findsOneWidget);
+
+      expect(tester.takeException(), isNull);
+    });
+  });
+}

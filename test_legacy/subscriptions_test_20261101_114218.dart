@@ -1,0 +1,99 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'package:adn_carwash_master/main.dart';
+import 'package:adn_carwash_master/features/subscriptions/subscriptions_screen.dart';
+
+void main() {
+  group('ADN Publicidad Software Master - Suscripciones', () {
+    Future<void> openSubscriptions(WidgetTester tester) async {
+      await tester.binding.setSurfaceSize(const Size(1280, 950));
+
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      await tester.pumpWidget(const AdnCarWashMaster());
+
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(InkWell, 'Suscripciones'));
+
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('Abre el directorio de suscripciones', (
+      WidgetTester tester,
+    ) async {
+      await openSubscriptions(tester);
+
+      expect(find.byType(SubscriptionsScreen), findsOneWidget);
+
+      expect(find.text('Directorio de suscripciones'), findsOneWidget);
+
+      expect(find.text('A\u00fan no hay suscripciones'), findsOneWidget);
+
+      expect(find.text('Nueva suscripci\u00f3n'), findsOneWidget);
+    });
+
+    testWidgets('Abre el formulario sin empresas ficticias', (
+      WidgetTester tester,
+    ) async {
+      await openSubscriptions(tester);
+
+      await tester.tap(find.text('Nueva suscripci\u00f3n'));
+
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SubscriptionFormDialog), findsOneWidget);
+
+      expect(find.text('Sin empresas registradas'), findsOneWidget);
+
+      expect(find.byKey(const Key('subscription_plan')), findsOneWidget);
+
+      expect(find.byKey(const Key('subscription_cycle')), findsOneWidget);
+
+      expect(find.byKey(const Key('subscription_start')), findsOneWidget);
+    });
+
+    testWidgets('Solicita la fecha de inicio obligatoria', (
+      WidgetTester tester,
+    ) async {
+      await openSubscriptions(tester);
+
+      await tester.tap(find.text('Nueva suscripci\u00f3n'));
+
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('Revisar datos'));
+
+      await tester.tap(find.text('Revisar datos'));
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Selecciona una fecha de inicio.'), findsOneWidget);
+
+      expect(find.byType(SubscriptionFormDialog), findsOneWidget);
+    });
+
+    testWidgets('Cancelar no registra una suscripcion', (
+      WidgetTester tester,
+    ) async {
+      await openSubscriptions(tester);
+
+      await tester.tap(find.text('Nueva suscripci\u00f3n'));
+
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('Cancelar'));
+
+      await tester.tap(find.text('Cancelar'));
+
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SubscriptionFormDialog), findsNothing);
+
+      expect(find.text('A\u00fan no hay suscripciones'), findsOneWidget);
+    });
+  });
+}

@@ -1,0 +1,86 @@
+{{flutter_js}}
+
+{{flutter_build_config}}
+
+// ============================================================
+// ADN PUBLICIDAD SOFTWARE MASTER
+// INICIALIZACIÓN PERSONALIZADA
+// ============================================================
+
+_flutter.loader.load({
+
+  onEntrypointLoaded: async function (engineInitializer) {
+
+    try {
+
+      // Inicializar el motor de Flutter.
+
+      const appRunner =
+        await engineInitializer.initializeEngine();
+
+      // Ejecutar ADN Publicidad Software Master.
+
+      await appRunner.runApp();
+
+      // Dar oportunidad al navegador de pintar la interfaz.
+
+      requestAnimationFrame(function () {
+
+        requestAnimationFrame(function () {
+
+          window.dispatchEvent(
+            new Event('adn-flutter-ready')
+          );
+
+        });
+
+      });
+
+    } catch (error) {
+
+      console.error(
+        'Error al iniciar ADN Publicidad Software Master:',
+        error
+      );
+
+      // Detener el indicador si la carga falla.
+
+      const loader = document.getElementById(
+        'adn-loader'
+      );
+
+      if (loader) {
+        loader.style.display = 'none';
+      }
+
+      // Mostrar el error para facilitar el diagnóstico.
+
+      const errorMessage = document.createElement('div');
+
+      errorMessage.style.cssText = [
+        'position:fixed',
+        'top:50%',
+        'left:50%',
+        'transform:translate(-50%,-50%)',
+        'max-width:420px',
+        'padding:24px',
+        'background:#0A1317',
+        'border:1px solid #203238',
+        'border-radius:16px',
+        'color:#F8FAFC',
+        'font-family:Arial,sans-serif',
+        'text-align:center',
+        'line-height:1.6'
+      ].join(';');
+
+      errorMessage.textContent =
+        'No se pudo iniciar ADN Publicidad Software Master. ' +
+        'Revisa la conexión y vuelve a cargar la página.';
+
+      document.body.appendChild(errorMessage);
+
+    }
+
+  }
+
+});

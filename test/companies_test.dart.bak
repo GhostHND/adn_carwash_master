@@ -1,0 +1,73 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'package:adn_carwash_master/main.dart';
+
+void main() {
+  group('Módulo Empresas', () {
+    testWidgets('Permite abrir el formulario de nueva empresa', (
+      WidgetTester tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(1280, 900));
+
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      await tester.pumpWidget(const AdnCarWashMaster());
+
+      await tester.pumpAndSettle();
+
+      final empresasButton = find.widgetWithText(InkWell, 'Empresas');
+
+      expect(empresasButton, findsOneWidget);
+
+      await tester.tap(empresasButton);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Directorio de empresas'), findsOneWidget);
+
+      expect(find.text('Aún no hay empresas para mostrar'), findsOneWidget);
+
+      await tester.tap(find.text('Nueva empresa'));
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Datos del negocio'), findsOneWidget);
+
+      expect(find.text('Administrador principal'), findsOneWidget);
+
+      expect(find.text('Plan de suscripción'), findsOneWidget);
+    });
+
+    testWidgets('El formulario identifica los campos obligatorios', (
+      WidgetTester tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(1280, 900));
+
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      await tester.pumpWidget(const AdnCarWashMaster());
+
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(InkWell, 'Empresas'));
+
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Nueva empresa'));
+
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Validar datos'));
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Este campo es obligatorio.'), findsWidgets);
+
+      expect(find.byType(Dialog), findsOneWidget);
+    });
+  });
+}

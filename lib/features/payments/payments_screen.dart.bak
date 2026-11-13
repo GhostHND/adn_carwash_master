@@ -1,0 +1,1053 @@
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
+
+import '../../core/adn_colors.dart';
+
+// ============================================================
+// ADN CARWASH MASTER
+// MODULO DE PAGOS
+// ============================================================
+
+class PaymentsScreen extends StatelessWidget {
+  const PaymentsScreen({super.key});
+
+  Future<void> _openPaymentForm(BuildContext context) async {
+    final validated = await showDialog<bool>(
+      context: context,
+      builder: (_) => const PaymentFormDialog(),
+    );
+
+    if (!context.mounted || validated != true) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Borrador validado. No se registr\u00f3 '
+          'ning\u00fan pago ni se emiti\u00f3 un comprobante. '
+          'Primero necesitamos una suscripci\u00f3n '
+          'real y la conexi\u00f3n con el servidor.',
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final mobile = constraints.maxWidth < 620;
+        final padding = mobile ? 18.0 : 29.0;
+        final available = constraints.maxWidth - padding * 2;
+
+        final columns = available >= 1080
+            ? 4
+            : available >= 560
+            ? 2
+            : 1;
+
+        final cardWidth = (available - 14 * (columns - 1)) / columns;
+
+        return SingleChildScrollView(
+          padding: EdgeInsets.all(padding),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (mobile)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const _PaymentsHeading(),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: _NewPaymentButton(
+                        onPressed: () => _openPaymentForm(context),
+                      ),
+                    ),
+                  ],
+                )
+              else
+                Row(
+                  children: [
+                    const Expanded(child: _PaymentsHeading()),
+                    const SizedBox(width: 16),
+                    _NewPaymentButton(
+                      onPressed: () => _openPaymentForm(context),
+                    ),
+                  ],
+                ),
+
+              const SizedBox(height: 25),
+
+              Wrap(
+                spacing: 14,
+                runSpacing: 14,
+                children: [
+                  _PaymentMetric(
+                    width: cardWidth,
+                    title: 'Pagos registrados',
+                    icon: Icons.receipt_long_rounded,
+                    color: AdnColors.turquoise,
+                  ),
+                  _PaymentMetric(
+                    width: cardWidth,
+                    title: 'Importe recaudado',
+                    icon: Icons.account_balance_wallet_rounded,
+                    color: const Color(0xFF22C55E),
+                  ),
+                  _PaymentMetric(
+                    width: cardWidth,
+                    title: 'Saldos pendientes',
+                    icon: Icons.pending_actions_rounded,
+                    color: const Color(0xFFF5C000),
+                  ),
+                  _PaymentMetric(
+                    width: cardWidth,
+                    title: 'Comprobantes emitidos',
+                    icon: Icons.description_outlined,
+                    color: AdnColors.coral,
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 24),
+
+              const _PaymentNotice(),
+
+              const SizedBox(height: 24),
+
+              const _PaymentsDirectory(),
+
+              const SizedBox(height: 24),
+
+              const _PaymentInformation(),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ============================================================
+// ENCABEZADO
+// ============================================================
+
+class _PaymentsHeading extends StatelessWidget {
+  const _PaymentsHeading();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Pagos',
+          style: TextStyle(
+            color: AdnColors.white,
+            fontSize: 28,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.5,
+          ),
+        ),
+        SizedBox(height: 7),
+        Text(
+          'Control de cobros, abonos y saldos '
+          'de las suscripciones.',
+          style: TextStyle(color: AdnColors.muted, fontSize: 13),
+        ),
+      ],
+    );
+  }
+}
+
+class _NewPaymentButton extends StatelessWidget {
+  final VoidCallback onPressed;
+
+  const _NewPaymentButton({required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton.icon(
+      onPressed: onPressed,
+      icon: const Icon(Icons.add_card_rounded, size: 19),
+      label: const Text('Nuevo pago'),
+      style: FilledButton.styleFrom(
+        backgroundColor: AdnColors.turquoise,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 17),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+      ),
+    );
+  }
+}
+
+// ============================================================
+// INDICADORES
+// ============================================================
+
+class _PaymentMetric extends StatelessWidget {
+  final double width;
+  final String title;
+  final IconData icon;
+  final Color color;
+
+  const _PaymentMetric({
+    required this.width,
+    required this.title,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      padding: const EdgeInsets.all(17),
+      decoration: BoxDecoration(
+        color: AdnColors.panel,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AdnColors.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(11),
+            ),
+            child: Icon(icon, color: color, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: AdnColors.white,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 7),
+                const Text(
+                  'Sin conectar',
+                  style: TextStyle(color: AdnColors.muted, fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================================
+// AVISO DE DESARROLLO
+// ============================================================
+
+class _PaymentNotice extends StatelessWidget {
+  const _PaymentNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AdnColors.turquoise.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: AdnColors.turquoise.withValues(alpha: 0.20)),
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.info_outline_rounded,
+            color: AdnColors.turquoiseLight,
+            size: 21,
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'M\u00f3dulo en desarrollo. '
+              'Puedes revisar importes y calcular '
+              'un saldo estimado, pero todav\u00eda '
+              'no se registran cobros, abonos '
+              'ni comprobantes.',
+              style: TextStyle(
+                color: AdnColors.white,
+                fontSize: 12,
+                height: 1.6,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================================
+// DIRECTORIO DE PAGOS
+// ============================================================
+
+class _PaymentsDirectory extends StatelessWidget {
+  const _PaymentsDirectory();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AdnColors.panel,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AdnColors.border),
+      ),
+      child: Column(
+        children: [
+          const Padding(
+            padding: EdgeInsets.all(22),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Historial de pagos',
+                    style: TextStyle(
+                      color: AdnColors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                Icon(Icons.receipt_long_outlined, color: AdnColors.muted),
+              ],
+            ),
+          ),
+
+          const Divider(height: 1, color: AdnColors.border),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 52),
+            child: Column(
+              children: [
+                Container(
+                  width: 74,
+                  height: 74,
+                  decoration: BoxDecoration(
+                    color: AdnColors.turquoise.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: const Icon(
+                    Icons.payments_outlined,
+                    color: AdnColors.turquoise,
+                    size: 35,
+                  ),
+                ),
+
+                const SizedBox(height: 19),
+
+                const Text(
+                  'A\u00fan no hay pagos registrados',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: AdnColors.white,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 460),
+                  child: const Text(
+                    'Aqu\u00ed aparecer\u00e1n los cobros '
+                    'de cada suscripci\u00f3n, '
+                    'sus fechas, importes, abonos, '
+                    'saldos y comprobantes.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: AdnColors.muted,
+                      fontSize: 12,
+                      height: 1.7,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================================
+// INFORMACION DE FUNCIONAMIENTO
+// ============================================================
+
+class _PaymentInformation extends StatelessWidget {
+  const _PaymentInformation();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(21),
+      decoration: BoxDecoration(
+        color: AdnColors.panel,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AdnColors.border),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Control de cobros',
+            style: TextStyle(
+              color: AdnColors.white,
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          SizedBox(height: 15),
+          Text(
+            'Cada pago deber\u00e1 relacionarse '
+            'con una suscripci\u00f3n real. '
+            'Los abonos quedar\u00e1n asociados '
+            'a esa obligaci\u00f3n para calcular '
+            'su saldo acumulado. '
+            'El historial permitir\u00e1 consultar '
+            'comprobantes cuando implementemos '
+            'el servidor.',
+            style: TextStyle(color: AdnColors.muted, fontSize: 12, height: 1.7),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================================
+// FORMULARIO PRELIMINAR DE PAGO
+// ============================================================
+
+class PaymentFormDialog extends StatefulWidget {
+  const PaymentFormDialog({super.key});
+
+  @override
+  State<PaymentFormDialog> createState() => _PaymentFormDialogState();
+}
+
+class _PaymentFormDialogState extends State<PaymentFormDialog> {
+  final _formKey = GlobalKey<FormState>();
+
+  final _totalController = TextEditingController();
+  final _paidController = TextEditingController();
+  final _referenceController = TextEditingController();
+
+  String _method = 'Transferencia';
+  DateTime _paymentDate = DateTime.now();
+
+  @override
+  void dispose() {
+    _totalController.dispose();
+    _paidController.dispose();
+    _referenceController.dispose();
+    super.dispose();
+  }
+
+  // ==========================================================
+  // CONVERSION DE IMPORTES A CENTAVOS
+  // ==========================================================
+
+  int? _toCents(String text) {
+    final normalized = text.trim().replaceAll(',', '.');
+
+    if (!RegExp(r'^\d+(?:\.\d{1,2})?$').hasMatch(normalized)) {
+      return null;
+    }
+
+    final parts = normalized.split('.');
+    final units = int.tryParse(parts[0]);
+
+    if (units == null || units > 999999999) {
+      return null;
+    }
+
+    final cents = parts.length == 2 ? int.parse(parts[1].padRight(2, '0')) : 0;
+
+    return units * 100 + cents;
+  }
+
+  String _formatMoney(int cents) {
+    return 'L ${(cents / 100).toStringAsFixed(2)}';
+  }
+
+  String? _validateTotal(String? value) {
+    final amount = _toCents(value ?? '');
+
+    if (amount == null || amount <= 0) {
+      return 'Ingresa un importe mayor que cero '
+          'con hasta dos decimales.';
+    }
+
+    return null;
+  }
+
+  String? _validatePaid(String? value) {
+    final paid = _toCents(value ?? '');
+    final total = _toCents(_totalController.text);
+
+    if (paid == null || paid <= 0) {
+      return 'Ingresa un abono mayor que cero '
+          'con hasta dos decimales.';
+    }
+
+    if (total != null && paid > total) {
+      return 'El abono no puede superar el importe.';
+    }
+
+    return null;
+  }
+
+  // ==========================================================
+  // FECHA DEL PAGO
+  // ==========================================================
+
+  String get _formattedDate {
+    final year = _paymentDate.year;
+    final month = _paymentDate.month.toString().padLeft(2, '0');
+    final day = _paymentDate.day.toString().padLeft(2, '0');
+
+    return '$year-$month-$day';
+  }
+
+  Future<void> _selectDate() async {
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: _paymentDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+
+    if (!mounted || selected == null) {
+      return;
+    }
+
+    setState(() {
+      _paymentDate = selected;
+    });
+  }
+
+  // ==========================================================
+  // ESTILOS DE FORMULARIO
+  // ==========================================================
+
+  InputDecoration _decoration({required IconData icon, required String hint}) {
+    OutlineInputBorder border(Color color) {
+      return OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: color),
+      );
+    }
+
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(color: AdnColors.muted, fontSize: 12),
+      prefixIcon: Icon(icon, color: AdnColors.muted, size: 20),
+      filled: true,
+      fillColor: AdnColors.background,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      enabledBorder: border(AdnColors.border),
+      focusedBorder: border(AdnColors.turquoise),
+      errorBorder: border(AdnColors.coral),
+      focusedErrorBorder: border(AdnColors.coral),
+    );
+  }
+
+  Widget _label(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 9),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: AdnColors.white,
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+
+  Widget _amountField({
+    required Key key,
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required String? Function(String?) validator,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _label(label),
+        TextFormField(
+          key: key,
+          controller: controller,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          textInputAction: TextInputAction.next,
+          onChanged: (_) => setState(() {}),
+          validator: validator,
+          style: const TextStyle(color: AdnColors.white, fontSize: 13),
+          decoration: _decoration(icon: Icons.attach_money_rounded, hint: hint),
+        ),
+      ],
+    );
+  }
+
+  Widget _fieldPair({
+    required Widget first,
+    required Widget second,
+    required bool twoColumns,
+  }) {
+    if (twoColumns) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: first),
+          const SizedBox(width: 16),
+          Expanded(child: second),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [first, const SizedBox(height: 18), second],
+    );
+  }
+
+  // ==========================================================
+  // SUSCRIPCION NO DISPONIBLE TODAVIA
+  // ==========================================================
+
+  Widget _subscriptionField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _label('Suscripci\u00f3n asociada'),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 17),
+          decoration: BoxDecoration(
+            color: AdnColors.background,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AdnColors.border),
+          ),
+          child: const Row(
+            children: [
+              Icon(
+                Icons.credit_card_off_rounded,
+                color: AdnColors.muted,
+                size: 20,
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Sin suscripciones registradas',
+                  style: TextStyle(color: AdnColors.muted, fontSize: 12),
+                ),
+              ),
+              Icon(
+                Icons.lock_outline_rounded,
+                color: AdnColors.muted,
+                size: 18,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ==========================================================
+  // FORMA DE PAGO
+  // ==========================================================
+
+  Widget _methodField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _label('Forma de pago'),
+        DropdownButtonFormField<String>(
+          key: const Key('payment_method'),
+          initialValue: _method,
+          dropdownColor: AdnColors.panel,
+          style: const TextStyle(color: AdnColors.white, fontSize: 13),
+          decoration: _decoration(
+            icon: Icons.payments_outlined,
+            hint: 'Seleccionar forma de pago',
+          ),
+          items: const [
+            DropdownMenuItem(
+              value: 'Transferencia',
+              child: Text('Transferencia'),
+            ),
+            DropdownMenuItem(value: 'Efectivo', child: Text('Efectivo')),
+            DropdownMenuItem(value: 'Tarjeta', child: Text('Tarjeta')),
+            DropdownMenuItem(value: 'Otro', child: Text('Otro')),
+          ],
+          onChanged: (value) {
+            if (value != null) {
+              setState(() {
+                _method = value;
+              });
+            }
+          },
+        ),
+      ],
+    );
+  }
+
+  // ==========================================================
+  // FECHA Y REFERENCIA
+  // ==========================================================
+
+  Widget _dateField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _label('Fecha del pago'),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            key: const Key('payment_date'),
+            onPressed: _selectDate,
+            icon: const Icon(Icons.calendar_today_rounded, size: 18),
+            label: Text(_formattedDate),
+            style: OutlinedButton.styleFrom(
+              alignment: Alignment.centerLeft,
+              foregroundColor: AdnColors.white,
+              side: const BorderSide(color: AdnColors.border),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _referenceField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _label('Referencia o comprobante externo'),
+        TextFormField(
+          key: const Key('payment_reference'),
+          controller: _referenceController,
+          textInputAction: TextInputAction.done,
+          style: const TextStyle(color: AdnColors.white, fontSize: 13),
+          decoration: _decoration(icon: Icons.tag_rounded, hint: 'Opcional'),
+        ),
+      ],
+    );
+  }
+
+  // ==========================================================
+  // RESUMEN DE CALCULO LOCAL
+  // ==========================================================
+
+  Widget _summary() {
+    final total = _toCents(_totalController.text);
+    final paid = _toCents(_paidController.text);
+
+    final valid =
+        total != null && total > 0 && paid != null && paid > 0 && paid <= total;
+
+    final balance = valid ? total - paid : null;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(17),
+      decoration: BoxDecoration(
+        color: AdnColors.turquoise.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AdnColors.turquoise.withValues(alpha: 0.20)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Resumen del borrador',
+            style: TextStyle(
+              color: AdnColors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 11),
+
+          if (balance == null)
+            const Text(
+              'Ingresa un importe y un abono v\u00e1lidos '
+              'para calcular el saldo.',
+              style: TextStyle(
+                color: AdnColors.muted,
+                fontSize: 12,
+                height: 1.6,
+              ),
+            )
+          else ...[
+            Text(
+              'Importe: ${_formatMoney(total)}',
+              style: const TextStyle(color: AdnColors.white, fontSize: 12),
+            ),
+            const SizedBox(height: 7),
+            Text(
+              'Abono: ${_formatMoney(paid)}',
+              style: const TextStyle(color: AdnColors.white, fontSize: 12),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Saldo estimado: ${_formatMoney(balance)}',
+              key: const Key('payment_balance'),
+              style: const TextStyle(
+                color: AdnColors.turquoiseLight,
+                fontSize: 15,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 12),
+
+          const Text(
+            'Este c\u00e1lculo es una vista previa. '
+            'No representa un saldo contable real.',
+            style: TextStyle(color: AdnColors.muted, fontSize: 11, height: 1.5),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ==========================================================
+  // VALIDAR SIN GUARDAR
+  // ==========================================================
+
+  void _validateDraft() {
+    FocusScope.of(context).unfocus();
+
+    if (_formKey.currentState?.validate() != true) {
+      return;
+    }
+
+    // No hay API, empresa ni suscripcion vinculada.
+    // No se almacena ni emite comprobante alguno.
+
+    Navigator.of(context).pop(true);
+  }
+
+  // ==========================================================
+  // DIALOGO RESPONSIVE
+  // ==========================================================
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final keyboard = MediaQuery.viewInsetsOf(context).bottom;
+    final mobile = size.width < 620;
+
+    final height = math.min(
+      780.0,
+      math.max(280.0, size.height - keyboard - 36),
+    );
+
+    return Dialog(
+      backgroundColor: AdnColors.panel,
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: mobile ? 12 : 24,
+        vertical: 18,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: AdnColors.border),
+      ),
+      child: SizedBox(
+        width: 740,
+        height: height,
+        child: Padding(
+          padding: EdgeInsets.all(mobile ? 16 : 24),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    Icons.add_card_rounded,
+                    color: AdnColors.turquoiseLight,
+                    size: 30,
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Nuevo pago',
+                          style: TextStyle(
+                            color: AdnColors.white,
+                            fontSize: 19,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        SizedBox(height: 5),
+                        Text(
+                          'Revisi\u00f3n de cobro o abono',
+                          style: TextStyle(
+                            color: AdnColors.muted,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Cerrar',
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      color: AdnColors.muted,
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 17),
+
+              const Divider(height: 1, color: AdnColors.border),
+
+              Expanded(
+                child: Form(
+                  key: _formKey,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final twoColumns = constraints.maxWidth >= 610;
+
+                      return SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(vertical: 19),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Datos del cobro',
+                              style: TextStyle(
+                                color: AdnColors.white,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+
+                            const SizedBox(height: 18),
+
+                            _subscriptionField(),
+
+                            const SizedBox(height: 18),
+
+                            _fieldPair(
+                              twoColumns: twoColumns,
+                              first: _amountField(
+                                key: const Key('payment_total'),
+                                controller: _totalController,
+                                label: 'Importe de referencia (L)',
+                                hint: 'Ej. 1000.00',
+                                validator: _validateTotal,
+                              ),
+                              second: _amountField(
+                                key: const Key('payment_paid'),
+                                controller: _paidController,
+                                label: 'Abono (L)',
+                                hint: 'Ej. 500.00',
+                                validator: _validatePaid,
+                              ),
+                            ),
+
+                            const SizedBox(height: 18),
+
+                            _fieldPair(
+                              twoColumns: twoColumns,
+                              first: _methodField(),
+                              second: _dateField(),
+                            ),
+
+                            const SizedBox(height: 18),
+
+                            _referenceField(),
+
+                            const SizedBox(height: 22),
+
+                            _summary(),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+
+              const Divider(height: 1, color: AdnColors.border),
+
+              const SizedBox(height: 15),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AdnColors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        side: const BorderSide(color: AdnColors.border),
+                      ),
+                      child: const Text('Cancelar'),
+                    ),
+                  ),
+
+                  const SizedBox(width: 12),
+
+                  Expanded(
+                    child: FilledButton(
+                      key: const Key('payment_validate'),
+                      onPressed: _validateDraft,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AdnColors.turquoise,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: const Text(
+                        'Validar borrador',
+                        style: TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

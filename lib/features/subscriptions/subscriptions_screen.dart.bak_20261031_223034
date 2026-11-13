@@ -1,0 +1,938 @@
+import 'package:flutter/material.dart';
+
+import '../../core/adn_colors.dart';
+
+// ============================================================
+// ADN CARWASH MASTER
+// MODULO DE SUSCRIPCIONES
+// ============================================================
+
+class SubscriptionsScreen extends StatelessWidget {
+  const SubscriptionsScreen({super.key});
+
+  Future<void> _openForm(BuildContext context) async {
+    final reviewed = await showDialog<bool>(
+      context: context,
+      builder: (_) => const SubscriptionFormDialog(),
+    );
+
+    if (!context.mounted || reviewed != true) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Datos revisados correctamente. '
+          'No se ha creado ninguna suscripci\u00f3n '
+          'porque todav\u00eda no existe una empresa '
+          'vinculada ni una conexi\u00f3n con el servidor.',
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final mobile = constraints.maxWidth < 620;
+        final padding = mobile ? 18.0 : 29.0;
+
+        final availableWidth = constraints.maxWidth - padding * 2;
+
+        final columns = availableWidth >= 1080
+            ? 4
+            : availableWidth >= 580
+            ? 2
+            : 1;
+
+        final cardWidth = (availableWidth - 14 * (columns - 1)) / columns;
+
+        return SingleChildScrollView(
+          padding: EdgeInsets.all(padding),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (mobile)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const _SubscriptionsHeading(),
+                    const SizedBox(height: 19),
+                    SizedBox(
+                      width: double.infinity,
+                      child: _NewSubscriptionButton(
+                        onPressed: () => _openForm(context),
+                      ),
+                    ),
+                  ],
+                )
+              else
+                Row(
+                  children: [
+                    const Expanded(child: _SubscriptionsHeading()),
+                    const SizedBox(width: 16),
+                    _NewSubscriptionButton(onPressed: () => _openForm(context)),
+                  ],
+                ),
+
+              const SizedBox(height: 25),
+
+              Wrap(
+                spacing: 14,
+                runSpacing: 14,
+                children: [
+                  _StatusCard(
+                    width: cardWidth,
+                    title: 'Suscripciones vigentes',
+                    icon: Icons.verified_rounded,
+                    accent: const Color(0xFF22C55E),
+                  ),
+                  _StatusCard(
+                    width: cardWidth,
+                    title: 'Pr\u00f3ximas a vencer',
+                    icon: Icons.schedule_rounded,
+                    accent: const Color(0xFFF5C000),
+                  ),
+                  _StatusCard(
+                    width: cardWidth,
+                    title: 'Suscripciones vencidas',
+                    icon: Icons.event_busy_rounded,
+                    accent: AdnColors.coral,
+                  ),
+                  _StatusCard(
+                    width: cardWidth,
+                    title: 'Suscripciones suspendidas',
+                    icon: Icons.pause_circle_rounded,
+                    accent: AdnColors.muted,
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 23),
+
+              const _DevelopmentNotice(),
+
+              const SizedBox(height: 23),
+
+              const _SubscriptionDirectory(),
+
+              const SizedBox(height: 23),
+
+              const _SubscriptionRules(),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ============================================================
+// ENCABEZADO
+// ============================================================
+
+class _SubscriptionsHeading extends StatelessWidget {
+  const _SubscriptionsHeading();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Suscripciones',
+          style: TextStyle(
+            color: AdnColors.white,
+            fontSize: 28,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.5,
+          ),
+        ),
+        SizedBox(height: 7),
+        Text(
+          'Control de planes contratados, '
+          'vigencias y renovaciones.',
+          style: TextStyle(color: AdnColors.muted, fontSize: 13),
+        ),
+      ],
+    );
+  }
+}
+
+// ============================================================
+// BOTON NUEVA SUSCRIPCION
+// ============================================================
+
+class _NewSubscriptionButton extends StatelessWidget {
+  final VoidCallback onPressed;
+
+  const _NewSubscriptionButton({required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton.icon(
+      onPressed: onPressed,
+      icon: const Icon(Icons.add_card_rounded, size: 19),
+      label: const Text('Nueva suscripci\u00f3n'),
+      style: FilledButton.styleFrom(
+        backgroundColor: AdnColors.turquoise,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 17),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+      ),
+    );
+  }
+}
+
+// ============================================================
+// INDICADORES
+// ============================================================
+
+class _StatusCard extends StatelessWidget {
+  final double width;
+  final String title;
+  final IconData icon;
+  final Color accent;
+
+  const _StatusCard({
+    required this.width,
+    required this.title,
+    required this.icon,
+    required this.accent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      padding: const EdgeInsets.all(17),
+      decoration: BoxDecoration(
+        color: AdnColors.panel,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AdnColors.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(11),
+            ),
+            child: Icon(icon, size: 22, color: accent),
+          ),
+
+          const SizedBox(width: 12),
+
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: AdnColors.white,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+
+                const SizedBox(height: 7),
+
+                const Text(
+                  'Sin conectar',
+                  style: TextStyle(color: AdnColors.muted, fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================================
+// AVISO DE DESARROLLO
+// ============================================================
+
+class _DevelopmentNotice extends StatelessWidget {
+  const _DevelopmentNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AdnColors.turquoise.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: AdnColors.turquoise.withValues(alpha: 0.20)),
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.info_outline_rounded,
+            color: AdnColors.turquoiseLight,
+            size: 21,
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'El m\u00f3dulo est\u00e1 en desarrollo. '
+              'Todav\u00eda no registra suscripciones '
+              'ni calcula vencimientos. '
+              'Los datos aparecer\u00e1n cuando '
+              'conectemos las empresas y el servidor.',
+              style: TextStyle(
+                color: AdnColors.white,
+                fontSize: 12,
+                height: 1.6,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================================
+// DIRECTORIO
+// ============================================================
+
+class _SubscriptionDirectory extends StatelessWidget {
+  const _SubscriptionDirectory();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AdnColors.panel,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AdnColors.border),
+      ),
+      child: Column(
+        children: [
+          const Padding(
+            padding: EdgeInsets.all(22),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Directorio de suscripciones',
+                    style: TextStyle(
+                      color: AdnColors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.subscriptions_outlined,
+                  color: AdnColors.muted,
+                  size: 22,
+                ),
+              ],
+            ),
+          ),
+
+          const Divider(height: 1, color: AdnColors.border),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 52),
+            child: Column(
+              children: [
+                Container(
+                  width: 74,
+                  height: 74,
+                  decoration: BoxDecoration(
+                    color: AdnColors.turquoise.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: const Icon(
+                    Icons.event_note_rounded,
+                    color: AdnColors.turquoise,
+                    size: 35,
+                  ),
+                ),
+
+                const SizedBox(height: 19),
+
+                const Text(
+                  'A\u00fan no hay suscripciones',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: AdnColors.white,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 455),
+                  child: const Text(
+                    'Aqu\u00ed aparecer\u00e1n los autolavados '
+                    'con su plan contratado, '
+                    'fecha de inicio, vencimiento '
+                    'y estado de suscripci\u00f3n.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: AdnColors.muted,
+                      fontSize: 12,
+                      height: 1.7,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================================
+// REGLAS DE FUNCIONAMIENTO
+// ============================================================
+
+class _SubscriptionRules extends StatelessWidget {
+  const _SubscriptionRules();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(21),
+      decoration: BoxDecoration(
+        color: AdnColors.panel,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AdnColors.border),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Reglas de funcionamiento',
+            style: TextStyle(
+              color: AdnColors.white,
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+
+          SizedBox(height: 8),
+
+          Text(
+            'Estas reglas orientar\u00e1n '
+            'la implementaci\u00f3n del servidor.',
+            style: TextStyle(color: AdnColors.muted, fontSize: 12),
+          ),
+
+          SizedBox(height: 20),
+
+          _RuleItem(
+            icon: Icons.calendar_month_rounded,
+            title: 'Vencimientos',
+            description:
+                'Se calcular\u00e1n a partir de la fecha '
+                'de inicio y el per\u00edodo contratado.',
+          ),
+
+          SizedBox(height: 17),
+
+          _RuleItem(
+            icon: Icons.notifications_active_outlined,
+            title: 'Avisos de renovaci\u00f3n',
+            description:
+                'El plazo de aviso se definir\u00e1 '
+                'en la configuraci\u00f3n comercial.',
+          ),
+
+          SizedBox(height: 17),
+
+          _RuleItem(
+            icon: Icons.lock_clock_rounded,
+            title: 'Suspensi\u00f3n',
+            description:
+                'Una suscripci\u00f3n vencida podr\u00e1 '
+                'restringir el acceso seg\u00fan las '
+                'reglas aprobadas. No eliminar\u00e1 datos.',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RuleItem extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String description;
+
+  const _RuleItem({
+    required this.icon,
+    required this.title,
+    required this.description,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: AdnColors.turquoiseLight, size: 20),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  color: AdnColors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                description,
+                style: const TextStyle(
+                  color: AdnColors.muted,
+                  fontSize: 12,
+                  height: 1.6,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ============================================================
+// FORMULARIO PRELIMINAR
+// ============================================================
+
+class SubscriptionFormDialog extends StatefulWidget {
+  const SubscriptionFormDialog({super.key});
+
+  @override
+  State<SubscriptionFormDialog> createState() => _SubscriptionFormDialogState();
+}
+
+class _SubscriptionFormDialogState extends State<SubscriptionFormDialog> {
+  final _formKey = GlobalKey<FormState>();
+
+  final _startController = TextEditingController();
+
+  String _plan = 'B\u00e1sico';
+  String _cycle = 'Mensual';
+
+  @override
+  void dispose() {
+    _startController.dispose();
+    super.dispose();
+  }
+
+  // ==========================================================
+  // SELECCION DE FECHA
+  // ==========================================================
+
+  Future<void> _selectStartDate() async {
+    final today = DateTime.now();
+
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: today,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+
+    if (!mounted || selected == null) {
+      return;
+    }
+
+    final year = selected.year.toString();
+
+    final month = selected.month.toString().padLeft(2, '0');
+
+    final day = selected.day.toString().padLeft(2, '0');
+
+    setState(() {
+      _startController.text = '$year-$month-$day';
+    });
+  }
+
+  // ==========================================================
+  // ESTILOS
+  // ==========================================================
+
+  InputDecoration _decoration({required IconData icon, String? hint}) {
+    OutlineInputBorder border(Color color) {
+      return OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: color),
+      );
+    }
+
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(color: AdnColors.muted, fontSize: 12),
+      prefixIcon: Icon(icon, color: AdnColors.muted, size: 20),
+      filled: true,
+      fillColor: AdnColors.background,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      enabledBorder: border(AdnColors.border),
+      focusedBorder: border(AdnColors.turquoise),
+      errorBorder: border(AdnColors.coral),
+      focusedErrorBorder: border(AdnColors.coral),
+    );
+  }
+
+  Widget _label(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 9),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: AdnColors.white,
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+
+  // ==========================================================
+  // CAMPO DE EMPRESA
+  // ==========================================================
+
+  Widget _companyField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _label('Empresa'),
+
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 17),
+          decoration: BoxDecoration(
+            color: AdnColors.background,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AdnColors.border),
+          ),
+          child: const Row(
+            children: [
+              Icon(Icons.business_outlined, color: AdnColors.muted, size: 20),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Sin empresas registradas',
+                  style: TextStyle(color: AdnColors.muted, fontSize: 12),
+                ),
+              ),
+              Icon(
+                Icons.lock_outline_rounded,
+                color: AdnColors.muted,
+                size: 18,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ==========================================================
+  // SELECCION DE PLAN
+  // ==========================================================
+
+  Widget _planField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _label('Plan de suscripci\u00f3n'),
+
+        DropdownButtonFormField<String>(
+          key: const Key('subscription_plan'),
+          initialValue: _plan,
+          dropdownColor: AdnColors.panel,
+          style: const TextStyle(color: AdnColors.white, fontSize: 13),
+          decoration: _decoration(icon: Icons.workspace_premium_rounded),
+          items: const [
+            DropdownMenuItem(value: 'B\u00e1sico', child: Text('B\u00e1sico')),
+            DropdownMenuItem(value: 'Intermedio', child: Text('Intermedio')),
+            DropdownMenuItem(value: 'Pro', child: Text('Pro')),
+          ],
+          onChanged: (value) {
+            if (value != null) {
+              setState(() {
+                _plan = value;
+              });
+            }
+          },
+        ),
+      ],
+    );
+  }
+
+  // ==========================================================
+  // PERIODO DE FACTURACION
+  // ==========================================================
+
+  Widget _billingField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _label('Per\u00edodo de facturaci\u00f3n'),
+
+        DropdownButtonFormField<String>(
+          key: const Key('subscription_cycle'),
+          initialValue: _cycle,
+          dropdownColor: AdnColors.panel,
+          style: const TextStyle(color: AdnColors.white, fontSize: 13),
+          decoration: _decoration(icon: Icons.event_repeat_rounded),
+          items: const [
+            DropdownMenuItem(value: 'Mensual', child: Text('Mensual')),
+            DropdownMenuItem(value: 'Trimestral', child: Text('Trimestral')),
+            DropdownMenuItem(value: 'Anual', child: Text('Anual')),
+          ],
+          onChanged: (value) {
+            if (value != null) {
+              setState(() {
+                _cycle = value;
+              });
+            }
+          },
+        ),
+      ],
+    );
+  }
+
+  // ==========================================================
+  // FECHA DE INICIO
+  // ==========================================================
+
+  Widget _startField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _label('Fecha de inicio'),
+
+        TextFormField(
+          key: const Key('subscription_start'),
+          controller: _startController,
+          readOnly: true,
+          onTap: _selectStartDate,
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Selecciona una fecha de inicio.';
+            }
+
+            return null;
+          },
+          style: const TextStyle(color: AdnColors.white, fontSize: 13),
+          decoration: _decoration(
+            icon: Icons.calendar_today_rounded,
+            hint: 'Seleccionar fecha',
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ==========================================================
+  // VALIDACION LOCAL
+  // ==========================================================
+
+  void _validate() {
+    FocusScope.of(context).unfocus();
+
+    if (_formKey.currentState?.validate() != true) {
+      return;
+    }
+
+    // No hay persistencia.
+    // No se registra ninguna suscripcion.
+
+    Navigator.of(context).pop(true);
+  }
+
+  // ==========================================================
+  // INTERFAZ DEL FORMULARIO
+  // ==========================================================
+
+  @override
+  Widget build(BuildContext context) {
+    final mobile = MediaQuery.sizeOf(context).width < 620;
+
+    return Dialog(
+      backgroundColor: AdnColors.panel,
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: mobile ? 12 : 24,
+        vertical: 18,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: AdnColors.border),
+      ),
+      child: SizedBox(
+        width: 610,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(mobile ? 17 : 24),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.add_card_rounded,
+                      color: AdnColors.turquoiseLight,
+                      size: 30,
+                    ),
+
+                    const SizedBox(width: 12),
+
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Nueva suscripci\u00f3n',
+                            style: TextStyle(
+                              color: AdnColors.white,
+                              fontSize: 19,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+
+                          SizedBox(height: 5),
+
+                          Text(
+                            'Configuraci\u00f3n preliminar',
+                            style: TextStyle(
+                              color: AdnColors.muted,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    IconButton(
+                      tooltip: 'Cerrar',
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        color: AdnColors.muted,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 18),
+
+                const Divider(height: 1, color: AdnColors.border),
+
+                const SizedBox(height: 20),
+
+                _companyField(),
+
+                const SizedBox(height: 17),
+
+                _planField(),
+
+                const SizedBox(height: 17),
+
+                _billingField(),
+
+                const SizedBox(height: 17),
+
+                _startField(),
+
+                const SizedBox(height: 20),
+
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(15),
+                  decoration: BoxDecoration(
+                    color: AdnColors.turquoise.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AdnColors.turquoise.withValues(alpha: 0.18),
+                    ),
+                  ),
+                  child: const Text(
+                    'Los per\u00edodos son opciones preliminares. '
+                    'El precio, vencimiento, plazo de gracia '
+                    'y reglas de renovaci\u00f3n se '
+                    'configurar\u00e1n posteriormente. '
+                    'Esta pantalla no guarda informaci\u00f3n.',
+                    style: TextStyle(
+                      color: AdnColors.white,
+                      fontSize: 12,
+                      height: 1.6,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 19),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AdnColors.white,
+                          side: const BorderSide(color: AdnColors.border),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        child: const Text('Cancelar'),
+                      ),
+                    ),
+
+                    const SizedBox(width: 12),
+
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: _validate,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AdnColors.turquoise,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        child: const Text(
+                          'Revisar datos',
+                          style: TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

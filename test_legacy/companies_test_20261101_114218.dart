@@ -1,0 +1,104 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'package:adn_carwash_master/main.dart';
+import 'package:adn_carwash_master/features/companies/companies_screen.dart';
+
+void main() {
+  group('ADN Publicidad Software Master - Empresas', () {
+    // ========================================================
+    // PRUEBA 1: NAVEGACIÓN Y APERTURA DEL FORMULARIO
+    // ========================================================
+
+    testWidgets('Permite ingresar a Empresas y abrir el formulario', (
+      WidgetTester tester,
+    ) async {
+      // Configurar pantalla de escritorio.
+      await tester.binding.setSurfaceSize(const Size(1280, 900));
+
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      // Iniciar ADN Publicidad Software Master.
+      await tester.pumpWidget(const AdnCarWashMaster());
+
+      await tester.pumpAndSettle();
+
+      // Localizar el botón del módulo Empresas.
+      final empresasButton = find.widgetWithText(InkWell, 'Empresas');
+
+      expect(empresasButton, findsOneWidget);
+
+      // Abrir Empresas.
+      await tester.tap(empresasButton);
+
+      await tester.pumpAndSettle();
+
+      // Comprobar que se cargó el módulo.
+      expect(find.byType(CompaniesScreen), findsOneWidget);
+
+      expect(find.text('Directorio de empresas'), findsOneWidget);
+
+      // Comprobar que existe la opción de crear empresa.
+      expect(find.text('Nueva empresa'), findsOneWidget);
+
+      // Abrir el formulario.
+      await tester.tap(find.text('Nueva empresa'));
+
+      await tester.pumpAndSettle();
+
+      // Comprobar que aparece el formulario.
+      expect(find.byType(CompanyFormDialog), findsOneWidget);
+
+      expect(find.text('Datos del negocio'), findsOneWidget);
+
+      expect(find.text('Registro inicial de la empresa'), findsOneWidget);
+    });
+
+    // ========================================================
+    // PRUEBA 2: VALIDACIÓN DE CAMPOS OBLIGATORIOS
+    // ========================================================
+
+    testWidgets('Impide validar un formulario con campos vacíos', (
+      WidgetTester tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(1280, 900));
+
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      // Iniciar aplicación.
+      await tester.pumpWidget(const AdnCarWashMaster());
+
+      await tester.pumpAndSettle();
+
+      // Abrir el módulo Empresas.
+      await tester.tap(find.widgetWithText(InkWell, 'Empresas'));
+
+      await tester.pumpAndSettle();
+
+      // Abrir formulario.
+      await tester.tap(find.text('Nueva empresa'));
+
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CompanyFormDialog), findsOneWidget);
+
+      // Intentar validar sin ingresar datos.
+      await tester.tap(find.text('Validar datos'));
+
+      await tester.pumpAndSettle();
+
+      // Comprobar que aparecen errores de validación.
+      expect(
+        find.text('Este campo es obligatorio.', skipOffstage: false),
+        findsWidgets,
+      );
+
+      // El formulario debe permanecer abierto.
+      expect(find.byType(CompanyFormDialog), findsOneWidget);
+    });
+  });
+}

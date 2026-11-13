@@ -1,0 +1,102 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'package:adn_carwash_master/core/master_identity.dart';
+import 'package:adn_carwash_master/main.dart';
+import 'package:adn_carwash_master/features/companies/companies_screen.dart';
+import 'package:adn_carwash_master/features/plans/plans_screen.dart';
+import 'package:adn_carwash_master/features/products/software_products_screen.dart';
+
+void main() {
+  group('ADN Publicidad Software Master', () {
+    Future<void> openDesktop(WidgetTester tester) async {
+      await tester.binding.setSurfaceSize(const Size(1280, 900));
+
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      await tester.pumpWidget(const AdnCarWashMaster());
+
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('El dashboard muestra la identidad general', (
+      WidgetTester tester,
+    ) async {
+      await openDesktop(tester);
+
+      expect(find.text(MasterIdentity.fullName), findsOneWidget);
+
+      expect(find.byType(MasterDashboard), findsOneWidget);
+
+      expect(find.text('Panel general'), findsOneWidget);
+
+      expect(find.text('Actividad de la plataforma'), findsOneWidget);
+    });
+
+    testWidgets('El menu abre el catalogo de software', (
+      WidgetTester tester,
+    ) async {
+      await openDesktop(tester);
+
+      await tester.tap(find.widgetWithText(InkWell, 'Productos de software'));
+
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SoftwareProductsScreen), findsOneWidget);
+
+      expect(find.text('Catálogo de productos'), findsOneWidget);
+    });
+
+    testWidgets('El menu conserva el modulo Empresas', (
+      WidgetTester tester,
+    ) async {
+      await openDesktop(tester);
+
+      await tester.tap(find.widgetWithText(InkWell, 'Empresas'));
+
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CompaniesScreen), findsOneWidget);
+
+      expect(find.text('Directorio de empresas'), findsOneWidget);
+    });
+
+    testWidgets('El menu conserva los planes', (WidgetTester tester) async {
+      await openDesktop(tester);
+
+      await tester.tap(find.widgetWithText(InkWell, 'Planes'));
+
+      await tester.pumpAndSettle();
+
+      expect(find.byType(PlansScreen), findsOneWidget);
+
+      expect(find.text('Básico'), findsWidgets);
+
+      expect(find.text('Intermedio'), findsWidgets);
+
+      expect(find.text('Pro'), findsWidgets);
+    });
+
+    testWidgets('El dashboard utiliza navegacion movil', (
+      WidgetTester tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      await tester.pumpWidget(const AdnCarWashMaster());
+
+      await tester.pumpAndSettle();
+
+      expect(find.byTooltip('Abrir menú'), findsOneWidget);
+
+      expect(find.text('Panel general'), findsOneWidget);
+
+      expect(tester.takeException(), isNull);
+    });
+  });
+}

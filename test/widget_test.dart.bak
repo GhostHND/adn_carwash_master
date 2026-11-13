@@ -1,0 +1,158 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'package:adn_carwash_master/main.dart';
+import 'package:adn_carwash_master/features/companies/companies_screen.dart';
+import 'package:adn_carwash_master/features/plans/plans_screen.dart';
+
+void main() {
+  group('ADN CarWash Master', () {
+    // ========================================================
+    // PRUEBA 1: DASHBOARD PRINCIPAL
+    // ========================================================
+
+    testWidgets('El dashboard se muestra correctamente en escritorio', (
+      WidgetTester tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(1280, 800));
+
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      await tester.pumpWidget(const AdnCarWashMaster());
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('ADN CarWash Master'), findsOneWidget);
+
+      expect(find.text('Panel general'), findsOneWidget);
+
+      expect(find.text('Actividad de la plataforma'), findsOneWidget);
+    });
+
+    // ========================================================
+    // PRUEBA 2: NAVEGACIÓN AL MÓDULO EMPRESAS
+    // ========================================================
+
+    testWidgets('El menú permite abrir el módulo Empresas', (
+      WidgetTester tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(1280, 800));
+
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      await tester.pumpWidget(const AdnCarWashMaster());
+
+      await tester.pumpAndSettle();
+
+      final empresasButton = find.widgetWithText(InkWell, 'Empresas');
+
+      expect(empresasButton, findsOneWidget);
+
+      await tester.tap(empresasButton);
+
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CompaniesScreen), findsOneWidget);
+
+      expect(find.text('Directorio de empresas'), findsOneWidget);
+    });
+
+    // ========================================================
+    // PRUEBA 3: PLANES DE SUSCRIPCIÓN
+    // ========================================================
+
+    testWidgets('El módulo Planes muestra Básico, Intermedio y Pro', (
+      WidgetTester tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(1280, 800));
+
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      await tester.pumpWidget(const AdnCarWashMaster());
+
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(InkWell, 'Planes'));
+
+      await tester.pumpAndSettle();
+
+      expect(find.byType(PlansScreen), findsOneWidget);
+
+      expect(find.text('Planes de suscripción'), findsOneWidget);
+
+      expect(find.text('Básico'), findsOneWidget);
+
+      expect(find.text('Intermedio'), findsOneWidget);
+
+      expect(find.text('Pro'), findsOneWidget);
+    });
+
+    // ========================================================
+    // PRUEBA 4: INTERFAZ MÓVIL Y MENÚ DESPLEGABLE
+    // ========================================================
+
+    testWidgets('La aplicación utiliza navegación móvil en teléfonos', (
+      WidgetTester tester,
+    ) async {
+      // Simular una pantalla de teléfono.
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+
+      addTearDown(() async {
+        await tester.binding.setSurfaceSize(null);
+      });
+
+      await tester.pumpWidget(const AdnCarWashMaster());
+
+      await tester.pumpAndSettle();
+
+      // Verificar que existe el botón de navegación móvil.
+      expect(find.byTooltip('Abrir menú'), findsOneWidget);
+
+      // Comprobar que aparece el dashboard.
+      expect(find.text('Panel general'), findsOneWidget);
+
+      // Abrir menú lateral.
+      await tester.tap(find.byTooltip('Abrir menú'));
+
+      await tester.pumpAndSettle();
+
+      // Verificar que el Drawer está abierto.
+      final drawer = find.byType(Drawer);
+
+      expect(drawer, findsOneWidget);
+
+      // Buscar Empresas exclusivamente dentro del Drawer.
+      final empresasEnMenu = find.descendant(
+        of: drawer,
+        matching: find.text('Empresas'),
+      );
+
+      expect(empresasEnMenu, findsOneWidget);
+
+      // Buscar Planes exclusivamente dentro del Drawer.
+      final planesEnMenu = find.descendant(
+        of: drawer,
+        matching: find.text('Planes'),
+      );
+
+      expect(planesEnMenu, findsOneWidget);
+
+      // Seleccionar Empresas desde el menú móvil.
+      await tester.tap(empresasEnMenu);
+
+      await tester.pumpAndSettle();
+
+      // Comprobar que se cargó la pantalla Empresas.
+      expect(find.byType(CompaniesScreen), findsOneWidget);
+
+      // Comprobar que el menú móvil se cerró.
+      expect(find.byType(Drawer), findsNothing);
+    });
+  });
+}

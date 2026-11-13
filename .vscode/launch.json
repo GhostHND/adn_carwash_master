@@ -1,0 +1,21 @@
+﻿{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "ADN CarWash Master - Desarrollo",
+      "type": "dart",
+      "request": "launch",
+      "program": "lib/main_dev.dart",
+      "deviceId": "edge",
+      "flutterMode": "debug"
+    },
+    {
+      "name": "ADN CarWash Master - Login",
+      "type": "dart",
+      "request": "launch",
+      "program": "lib/main.dart",
+      "deviceId": "edge",
+      "flutterMode": "debug"
+    }
+  ]
+}

@@ -1,0 +1,280 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+
+  <meta
+    http-equiv="X-UA-Compatible"
+    content="IE=Edge"
+  >
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <meta
+    name="description"
+    content="ADN CarWash Master - Administración central de la plataforma ADN CarWash, propiedad de ADN Publicidad."
+  >
+
+  <meta
+    name="theme-color"
+    content="#070B0D"
+  >
+
+  <meta
+    name="mobile-web-app-capable"
+    content="yes"
+  >
+
+  <meta
+    name="apple-mobile-web-app-capable"
+    content="yes"
+  >
+
+  <meta
+    name="apple-mobile-web-app-status-bar-style"
+    content="black"
+  >
+
+  <meta
+    name="apple-mobile-web-app-title"
+    content="ADN CarWash Master"
+  >
+
+  <title>ADN CarWash Master</title>
+
+  <!-- IDENTIDAD CORPORATIVA ADN PUBLICIDAD -->
+
+  <link
+    rel="icon"
+    type="image/svg+xml"
+    sizes="any"
+    href="favicon.svg?v=2"
+  >
+
+  <link
+    rel="manifest"
+    href="manifest.json"
+  >
+
+  <style>
+
+    /* =====================================================
+       CONFIGURACIÓN GENERAL
+       ===================================================== */
+
+    :root {
+      --adn-background: #070B0D;
+      --adn-turquoise: #0FA7B4;
+      --adn-coral: #E84657;
+      --adn-yellow: #F5C000;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: var(--adn-background);
+    }
+
+    /* =====================================================
+       OCULTAR INDICADOR AZUL DE FLUTTER DEBUG
+       ===================================================== */
+
+    html body .flutter-loader {
+      display: none !important;
+    }
+
+    /* =====================================================
+       CONTENEDOR DE CARGA ADN
+       ===================================================== */
+
+    #adn-loader {
+      position: fixed;
+      top: 0;
+      left: 0;
+
+      width: 100%;
+      height: 6px;
+
+      z-index: 999999;
+
+      overflow: hidden;
+
+      background: #102126;
+
+      pointer-events: none;
+
+      opacity: 1;
+
+      transition: opacity 250ms ease;
+    }
+
+    /* =====================================================
+       LÍNEA ANIMADA
+       ===================================================== */
+
+    #adn-loader .adn-progress {
+      position: absolute;
+
+      top: 0;
+      left: 0;
+
+      width: 55%;
+      height: 100%;
+
+      background: linear-gradient(
+        90deg,
+        var(--adn-turquoise) 0%,
+        var(--adn-coral) 45%,
+        var(--adn-yellow) 80%,
+        var(--adn-turquoise) 100%
+      );
+
+      background-size: 200% 100%;
+
+      box-shadow:
+        0 0 12px rgba(15, 167, 180, 0.35),
+        0 0 18px rgba(232, 70, 87, 0.20);
+
+      animation:
+        adn-progress-move 2.2s ease-in-out infinite,
+        adn-progress-colors 2.8s linear infinite;
+    }
+
+    /* =====================================================
+       MOVIMIENTO HORIZONTAL
+       ===================================================== */
+
+    @keyframes adn-progress-move {
+
+      0% {
+        transform: translateX(-110%);
+      }
+
+      50% {
+        transform: translateX(75%);
+      }
+
+      100% {
+        transform: translateX(210%);
+      }
+
+    }
+
+    /* =====================================================
+       DESPLAZAMIENTO DE COLORES
+       ===================================================== */
+
+    @keyframes adn-progress-colors {
+
+      0% {
+        background-position: 0% 50%;
+      }
+
+      100% {
+        background-position: 200% 50%;
+      }
+
+    }
+
+    /* =====================================================
+       FINALIZACIÓN
+       ===================================================== */
+
+    #adn-loader.adn-hidden {
+      opacity: 0;
+    }
+
+    /* =====================================================
+       ACCESIBILIDAD
+       ===================================================== */
+
+    @media (prefers-reduced-motion: reduce) {
+
+      #adn-loader .adn-progress {
+        animation: none;
+        transform: translateX(0);
+        width: 100%;
+      }
+
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+  <!-- INDICADOR DE CARGA CORPORATIVO -->
+
+  <div
+    id="adn-loader"
+    role="progressbar"
+    aria-label="Cargando ADN CarWash Master"
+  >
+    <div class="adn-progress"></div>
+  </div>
+
+  <!-- CONTROL DE FINALIZACIÓN -->
+
+  <script>
+
+    (function () {
+
+      let loaderRemoved = false;
+
+      function removeAdnLoader() {
+
+        if (loaderRemoved) {
+          return;
+        }
+
+        loaderRemoved = true;
+
+        const loader = document.getElementById(
+          'adn-loader'
+        );
+
+        if (!loader) {
+          return;
+        }
+
+        loader.classList.add('adn-hidden');
+
+        window.setTimeout(function () {
+
+          loader.remove();
+
+        }, 300);
+
+      }
+
+      window.addEventListener(
+        'adn-flutter-ready',
+        removeAdnLoader,
+        { once: true }
+      );
+
+    })();
+
+  </script>
+
+  <!-- INICIALIZACIÓN FLUTTER -->
+
+  <script
+    src="flutter_bootstrap.js"
+    async>
+  </script>
+
+</body>
+
+</html>

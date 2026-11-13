@@ -1,0 +1,822 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+
+import 'core/adn_colors.dart';
+import 'features/administrators/administrators_screen.dart';
+import 'features/auth/master_access_app.dart';
+import 'features/companies/companies_screen.dart';
+import 'features/master_users/master_users_screen.dart';
+import 'features/permissions/permissions_screen.dart';
+import 'features/plans/plans_screen.dart';
+
+// ============================================================
+// PUNTO DE ENTRADA FINAL
+// ============================================================
+
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  runApp(const MasterAccessApp(previewApp: AdnCarWashMaster()));
+}
+
+// ============================================================
+// APLICACION MASTER
+// ============================================================
+
+class AdnCarWashMaster extends StatelessWidget {
+  const AdnCarWashMaster({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'ADN CarWash Master',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: AdnColors.background,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: AdnColors.turquoise,
+          brightness: Brightness.dark,
+          surface: AdnColors.background,
+        ),
+        dividerColor: AdnColors.border,
+      ),
+      home: const MasterScreen(),
+    );
+  }
+}
+
+// ============================================================
+// MODULOS DEL MENU
+// ============================================================
+
+class MasterMenuItem {
+  final String title;
+  final String group;
+  final IconData icon;
+
+  const MasterMenuItem({
+    required this.title,
+    required this.group,
+    required this.icon,
+  });
+}
+
+const List<MasterMenuItem> masterMenu = [
+  MasterMenuItem(
+    title: 'Dashboard',
+    group: 'GENERAL',
+    icon: Icons.dashboard_rounded,
+  ),
+  MasterMenuItem(
+    title: 'Empresas',
+    group: 'GESTI\u00d3N EMPRESARIAL',
+    icon: Icons.business_rounded,
+  ),
+  MasterMenuItem(
+    title: 'Planes',
+    group: 'GESTI\u00d3N EMPRESARIAL',
+    icon: Icons.workspace_premium_rounded,
+  ),
+  MasterMenuItem(
+    title: 'Suscripciones',
+    group: 'GESTI\u00d3N EMPRESARIAL',
+    icon: Icons.credit_card_rounded,
+  ),
+  MasterMenuItem(
+    title: 'Pagos',
+    group: 'GESTI\u00d3N EMPRESARIAL',
+    icon: Icons.receipt_long_rounded,
+  ),
+  MasterMenuItem(
+    title: 'Usuarios Master',
+    group: 'ADMINISTRACI\u00d3N',
+    icon: Icons.supervisor_account_rounded,
+  ),
+  MasterMenuItem(
+    title: 'Administradores',
+    group: 'ADMINISTRACI\u00d3N',
+    icon: Icons.manage_accounts_rounded,
+  ),
+  MasterMenuItem(
+    title: 'Permisos',
+    group: 'ADMINISTRACI\u00d3N',
+    icon: Icons.admin_panel_settings_rounded,
+  ),
+  MasterMenuItem(
+    title: 'Estado de empresas',
+    group: 'SISTEMA',
+    icon: Icons.monitor_heart_rounded,
+  ),
+  MasterMenuItem(
+    title: 'Monitoreo',
+    group: 'SISTEMA',
+    icon: Icons.analytics_rounded,
+  ),
+  MasterMenuItem(
+    title: 'Respaldos',
+    group: 'SISTEMA',
+    icon: Icons.backup_rounded,
+  ),
+  MasterMenuItem(
+    title: 'Auditor\u00eda',
+    group: 'SISTEMA',
+    icon: Icons.fact_check_rounded,
+  ),
+  MasterMenuItem(
+    title: 'Ajustes generales',
+    group: 'CONFIGURACI\u00d3N',
+    icon: Icons.settings_rounded,
+  ),
+];
+
+// ============================================================
+// CONTENEDOR PRINCIPAL RESPONSIVE
+// ============================================================
+
+class MasterScreen extends StatefulWidget {
+  const MasterScreen({super.key});
+
+  @override
+  State<MasterScreen> createState() => _MasterScreenState();
+}
+
+class _MasterScreenState extends State<MasterScreen> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  int selectedIndex = 0;
+
+  void selectPage(int index) {
+    setState(() {
+      selectedIndex = index;
+    });
+  }
+
+  Widget buildSelectedPage() {
+    switch (selectedIndex) {
+      case 0:
+        return const MasterDashboard();
+
+      case 1:
+        return const CompaniesScreen();
+
+      case 2:
+        return const PlansScreen();
+
+      case 5:
+        return const MasterUsersScreen();
+
+      case 6:
+        return const AdministratorsScreen();
+
+      case 7:
+        return const PermissionsScreen();
+
+      default:
+        return MasterModulePlaceholder(
+          title: masterMenu[selectedIndex].title,
+          icon: masterMenu[selectedIndex].icon,
+        );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+
+        final isMobile = width < 620;
+        final isTablet = width >= 620 && width < 850;
+        final isDesktop = width >= 850;
+
+        return Scaffold(
+          key: _scaffoldKey,
+          backgroundColor: AdnColors.background,
+          drawer: isMobile
+              ? Drawer(
+                  width: 285,
+                  backgroundColor: AdnColors.sidebar,
+                  child: MasterSidebar(
+                    selectedIndex: selectedIndex,
+                    onSelected: (index) {
+                      selectPage(index);
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                )
+              : null,
+          body: SafeArea(
+            child: Row(
+              children: [
+                if (isDesktop)
+                  SizedBox(
+                    width: 260,
+                    child: MasterSidebar(
+                      selectedIndex: selectedIndex,
+                      onSelected: selectPage,
+                    ),
+                  ),
+
+                if (isTablet)
+                  MasterNavigationRail(
+                    selectedIndex: selectedIndex,
+                    onSelected: selectPage,
+                  ),
+
+                Expanded(
+                  child: Column(
+                    children: [
+                      MasterTopBar(
+                        isMobile: isMobile,
+                        onOpenMenu: () {
+                          _scaffoldKey.currentState?.openDrawer();
+                        },
+                      ),
+
+                      Expanded(child: buildSelectedPage()),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ============================================================
+// MARCA ADN PUBLICIDAD
+// ============================================================
+
+class AdnBrand extends StatelessWidget {
+  const AdnBrand({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 76,
+          height: 51,
+          padding: const EdgeInsets.all(5),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AdnColors.turquoise.withValues(alpha: 0.3),
+            ),
+          ),
+          child: SvgPicture.asset(
+            'assets/branding/logo_adn.svg',
+            fit: BoxFit.contain,
+          ),
+        ),
+
+        const SizedBox(width: 11),
+
+        const Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'ADN PUBLICIDAD',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: AdnColors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.4,
+                ),
+              ),
+              SizedBox(height: 5),
+              Text(
+                'CARWASH MASTER',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: AdnColors.turquoiseLight,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.1,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ============================================================
+// MENU LATERAL DE ESCRITORIO Y TELEFONOS
+// ============================================================
+
+class MasterSidebar extends StatelessWidget {
+  final int selectedIndex;
+  final ValueChanged<int> onSelected;
+
+  const MasterSidebar({
+    super.key,
+    required this.selectedIndex,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: AdnColors.sidebar,
+        border: Border(right: BorderSide(color: AdnColors.border, width: 1)),
+      ),
+      child: Column(
+        children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(17, 20, 13, 20),
+            child: AdnBrand(),
+          ),
+
+          const Divider(height: 1, color: AdnColors.border),
+
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.fromLTRB(12, 15, 12, 15),
+              itemCount: masterMenu.length,
+              itemBuilder: (context, index) {
+                final item = masterMenu[index];
+                final selected = selectedIndex == index;
+
+                final isNewGroup =
+                    index == 0 || masterMenu[index - 1].group != item.group;
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (isNewGroup)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 20, 8, 11),
+                        child: Text(
+                          item.group,
+                          style: const TextStyle(
+                            color: AdnColors.muted,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.1,
+                          ),
+                        ),
+                      ),
+
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 5),
+                      child: Material(
+                        color: selected
+                            ? AdnColors.turquoise
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: () => onSelected(index),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 13,
+                              vertical: 12,
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  item.icon,
+                                  size: 20,
+                                  color: selected
+                                      ? Colors.white
+                                      : AdnColors.muted,
+                                ),
+                                const SizedBox(width: 13),
+                                Expanded(
+                                  child: Text(
+                                    item.title,
+                                    style: TextStyle(
+                                      color: selected
+                                          ? Colors.white
+                                          : AdnColors.muted,
+                                      fontSize: 12.5,
+                                      fontWeight: selected
+                                          ? FontWeight.w800
+                                          : FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+
+          const Divider(height: 1, color: AdnColors.border),
+
+          const Padding(
+            padding: EdgeInsets.all(17),
+            child: Row(
+              children: [
+                Icon(Icons.circle, size: 8, color: Color(0xFF22C55E)),
+                SizedBox(width: 9),
+                Text(
+                  'ENTORNO DE DESARROLLO',
+                  style: TextStyle(
+                    color: AdnColors.muted,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.6,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================================
+// NAVEGACION DE TABLETAS
+// ============================================================
+
+class MasterNavigationRail extends StatelessWidget {
+  final int selectedIndex;
+  final ValueChanged<int> onSelected;
+
+  const MasterNavigationRail({
+    super.key,
+    required this.selectedIndex,
+    required this.onSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        border: Border(right: BorderSide(color: AdnColors.border)),
+      ),
+      child: NavigationRail(
+        backgroundColor: AdnColors.sidebar,
+        selectedIndex: selectedIndex,
+        onDestinationSelected: onSelected,
+        extended: false,
+        minWidth: 75,
+        scrollable: true,
+        labelType: NavigationRailLabelType.none,
+        indicatorColor: AdnColors.turquoise,
+        selectedIconTheme: const IconThemeData(color: Colors.white),
+        unselectedIconTheme: const IconThemeData(color: AdnColors.muted),
+        destinations: masterMenu.map((item) {
+          return NavigationRailDestination(
+            icon: Tooltip(message: item.title, child: Icon(item.icon)),
+            label: Text(item.title),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+// ============================================================
+// BARRA SUPERIOR
+// ============================================================
+
+class MasterTopBar extends StatelessWidget {
+  final bool isMobile;
+  final VoidCallback onOpenMenu;
+
+  const MasterTopBar({
+    super.key,
+    required this.isMobile,
+    required this.onOpenMenu,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 65,
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 25),
+      decoration: const BoxDecoration(
+        color: AdnColors.background,
+        border: Border(bottom: BorderSide(color: AdnColors.border)),
+      ),
+      child: Row(
+        children: [
+          if (isMobile) ...[
+            IconButton(
+              onPressed: onOpenMenu,
+              tooltip: 'Abrir men\u00fa',
+              icon: const Icon(Icons.menu_rounded, color: AdnColors.white),
+            ),
+            const SizedBox(width: 5),
+          ],
+
+          const Expanded(
+            child: Text(
+              'ADN CarWash Master',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: AdnColors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+
+          if (!isMobile) ...[
+            const Icon(Icons.circle, size: 8, color: Color(0xFF22C55E)),
+            const SizedBox(width: 9),
+            const Text(
+              'ADN SYSTEM',
+              style: TextStyle(
+                color: AdnColors.muted,
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.5,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+
+class MasterDashboard extends StatelessWidget {
+  const MasterDashboard({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 620;
+        final padding = isMobile ? 17.0 : 29.0;
+
+        final availableWidth = constraints.maxWidth - (padding * 2);
+
+        final columns = availableWidth >= 960
+            ? 3
+            : availableWidth >= 520
+            ? 2
+            : 1;
+
+        final cardWidth = (availableWidth - 16 * (columns - 1)) / columns;
+
+        return SingleChildScrollView(
+          padding: EdgeInsets.all(padding),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Panel general',
+                style: TextStyle(
+                  color: AdnColors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.5,
+                ),
+              ),
+
+              const SizedBox(height: 7),
+
+              const Text(
+                'Administraci\u00f3n central de ADN CarWash.',
+                style: TextStyle(color: AdnColors.muted, fontSize: 13),
+              ),
+
+              const SizedBox(height: 27),
+
+              Wrap(
+                spacing: 16,
+                runSpacing: 16,
+                children: [
+                  MasterInfoCard(
+                    width: cardWidth,
+                    title: 'Empresas',
+                    description: 'Negocios registrados',
+                    icon: Icons.business_rounded,
+                  ),
+                  MasterInfoCard(
+                    width: cardWidth,
+                    title: 'Suscripciones',
+                    description: 'Planes contratados',
+                    icon: Icons.workspace_premium_rounded,
+                  ),
+                  MasterInfoCard(
+                    width: cardWidth,
+                    title: 'Estado del sistema',
+                    description: 'Monitoreo de empresas',
+                    icon: Icons.monitor_heart_rounded,
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 23),
+
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(23),
+                decoration: BoxDecoration(
+                  color: AdnColors.panel,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: AdnColors.border),
+                ),
+                child: const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Actividad de la plataforma',
+                      style: TextStyle(
+                        color: AdnColors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    SizedBox(height: 15),
+                    Text(
+                      'Todav\u00eda no hay operaciones registradas. '
+                      'La informaci\u00f3n aparecer\u00e1 cuando '
+                      'conectemos CarWash Master con su servidor.',
+                      style: TextStyle(
+                        color: AdnColors.muted,
+                        fontSize: 13,
+                        height: 1.6,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 22),
+
+              const Text(
+                'ADN Publicidad \u00b7 CarWash Master',
+                style: TextStyle(color: AdnColors.muted, fontSize: 11),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ============================================================
+// TARJETAS DEL DASHBOARD
+// ============================================================
+
+class MasterInfoCard extends StatelessWidget {
+  final double width;
+  final String title;
+  final String description;
+  final IconData icon;
+
+  const MasterInfoCard({
+    super.key,
+    required this.width,
+    required this.title,
+    required this.description,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      constraints: const BoxConstraints(minHeight: 158),
+      padding: const EdgeInsets.all(21),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF0C171B), Color(0xFF070E11)],
+        ),
+        borderRadius: BorderRadius.circular(19),
+        border: Border.all(color: AdnColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: AdnColors.turquoise.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(11),
+            ),
+            child: Icon(icon, color: AdnColors.turquoiseLight, size: 22),
+          ),
+
+          const SizedBox(height: 15),
+
+          Text(
+            title,
+            style: const TextStyle(
+              color: AdnColors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+
+          const SizedBox(height: 6),
+
+          Text(
+            description,
+            style: const TextStyle(color: AdnColors.muted, fontSize: 12),
+          ),
+
+          const SizedBox(height: 12),
+
+          const Text(
+            'Sin datos registrados',
+            style: TextStyle(
+              color: AdnColors.turquoiseLight,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================================
+// MODULOS PENDIENTES
+// ============================================================
+
+class MasterModulePlaceholder extends StatelessWidget {
+  final String title;
+  final IconData icon;
+
+  const MasterModulePlaceholder({
+    super.key,
+    required this.title,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(25),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AdnColors.turquoise.withValues(alpha: 0.09),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: AdnColors.turquoise.withValues(alpha: 0.17),
+                ),
+              ),
+              child: Icon(icon, size: 37, color: AdnColors.turquoise),
+            ),
+
+            const SizedBox(height: 19),
+
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: AdnColors.white,
+                fontSize: 23,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            const Text(
+              'Este m\u00f3dulo todav\u00eda no '
+              'est\u00e1 implementado.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AdnColors.muted, fontSize: 13),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

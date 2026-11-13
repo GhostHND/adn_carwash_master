@@ -1,0 +1,578 @@
+import 'package:flutter/material.dart';
+
+import '../../core/adn_colors.dart';
+
+// ============================================================
+// ADN CARWASH MASTER
+// ESTADOS ADMINISTRATIVOS DE EMPRESAS
+// ============================================================
+
+enum CompanyAccessStatus { pending, active, suspended, archived }
+
+enum CompanyStatusAction { activate, suspend, reactivate, archive, restore }
+
+// ============================================================
+// REGLAS DE TRANSICION
+// ============================================================
+
+class CompanyStatusPolicy {
+  const CompanyStatusPolicy._();
+
+  static CompanyAccessStatus? nextStatus({
+    required CompanyAccessStatus current,
+    required CompanyStatusAction action,
+    bool subscriptionEligible = false,
+  }) {
+    switch (action) {
+      case CompanyStatusAction.activate:
+        if (current == CompanyAccessStatus.pending && subscriptionEligible) {
+          return CompanyAccessStatus.active;
+        }
+        return null;
+
+      case CompanyStatusAction.suspend:
+        if (current == CompanyAccessStatus.active) {
+          return CompanyAccessStatus.suspended;
+        }
+        return null;
+
+      case CompanyStatusAction.reactivate:
+        if (current == CompanyAccessStatus.suspended && subscriptionEligible) {
+          return CompanyAccessStatus.active;
+        }
+        return null;
+
+      case CompanyStatusAction.archive:
+        if (current != CompanyAccessStatus.archived) {
+          return CompanyAccessStatus.archived;
+        }
+        return null;
+
+      case CompanyStatusAction.restore:
+        if (current == CompanyAccessStatus.archived) {
+          return CompanyAccessStatus.suspended;
+        }
+        return null;
+    }
+  }
+}
+
+// ============================================================
+// PANTALLA PRINCIPAL
+// ============================================================
+
+class CompanyStatusScreen extends StatelessWidget {
+  const CompanyStatusScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final mobile = constraints.maxWidth < 620;
+        final padding = mobile ? 18.0 : 29.0;
+        final available = constraints.maxWidth - padding * 2;
+
+        final columns = available >= 1080
+            ? 4
+            : available >= 560
+            ? 2
+            : 1;
+
+        final cardWidth = (available - 14 * (columns - 1)) / columns;
+
+        return SingleChildScrollView(
+          padding: EdgeInsets.all(padding),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const _PageHeading(),
+
+              const SizedBox(height: 25),
+
+              Wrap(
+                spacing: 14,
+                runSpacing: 14,
+                children: [
+                  _StatusMetric(
+                    width: cardWidth,
+                    title: 'Pendientes de activar',
+                    icon: Icons.hourglass_top_rounded,
+                    accent: const Color(0xFFF5C000),
+                  ),
+                  _StatusMetric(
+                    width: cardWidth,
+                    title: 'Empresas activas',
+                    icon: Icons.check_circle_rounded,
+                    accent: const Color(0xFF22C55E),
+                  ),
+                  _StatusMetric(
+                    width: cardWidth,
+                    title: 'Empresas suspendidas',
+                    icon: Icons.pause_circle_rounded,
+                    accent: AdnColors.coral,
+                  ),
+                  _StatusMetric(
+                    width: cardWidth,
+                    title: 'Empresas archivadas',
+                    icon: Icons.archive_rounded,
+                    accent: AdnColors.muted,
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 24),
+
+              const _DevelopmentNotice(),
+
+              const SizedBox(height: 24),
+
+              const _CompanyDirectory(),
+
+              const SizedBox(height: 24),
+
+              const _StatusRules(),
+
+              const SizedBox(height: 24),
+
+              const _AccessNotice(),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ============================================================
+// ENCABEZADO
+// ============================================================
+
+class _PageHeading extends StatelessWidget {
+  const _PageHeading();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Estado de empresas',
+          style: TextStyle(
+            color: AdnColors.white,
+            fontSize: 28,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.5,
+          ),
+        ),
+        SizedBox(height: 7),
+        Text(
+          'Control administrativo de activaciones, '
+          'suspensiones y archivos.',
+          style: TextStyle(color: AdnColors.muted, fontSize: 13),
+        ),
+      ],
+    );
+  }
+}
+
+// ============================================================
+// INDICADORES
+// ============================================================
+
+class _StatusMetric extends StatelessWidget {
+  final double width;
+  final String title;
+  final IconData icon;
+  final Color accent;
+
+  const _StatusMetric({
+    required this.width,
+    required this.title,
+    required this.icon,
+    required this.accent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      padding: const EdgeInsets.all(17),
+      decoration: BoxDecoration(
+        color: AdnColors.panel,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AdnColors.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(11),
+            ),
+            child: Icon(icon, size: 22, color: accent),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: AdnColors.white,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 7),
+                const Text(
+                  'Sin conectar',
+                  style: TextStyle(color: AdnColors.muted, fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================================
+// AVISO DE DESARROLLO
+// ============================================================
+
+class _DevelopmentNotice extends StatelessWidget {
+  const _DevelopmentNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AdnColors.turquoise.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: AdnColors.turquoise.withValues(alpha: 0.20)),
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.info_outline_rounded,
+            color: AdnColors.turquoiseLight,
+            size: 21,
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Esta pantalla muestra las reglas '
+              'administrativas previstas. '
+              'Todav\u00eda no permite modificar '
+              'empresas reales. La activaci\u00f3n '
+              'y suspensi\u00f3n se habilitar\u00e1n '
+              'cuando conectemos el servidor.',
+              style: TextStyle(
+                color: AdnColors.white,
+                fontSize: 12,
+                height: 1.6,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================================
+// DIRECTORIO DE ESTADOS
+// ============================================================
+
+class _CompanyDirectory extends StatelessWidget {
+  const _CompanyDirectory();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const Key('company_status_directory'),
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AdnColors.panel,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AdnColors.border),
+      ),
+      child: Column(
+        children: [
+          const Padding(
+            padding: EdgeInsets.all(22),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Control de empresas',
+                    style: TextStyle(
+                      color: AdnColors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                Icon(
+                  Icons.domain_verification_outlined,
+                  color: AdnColors.muted,
+                  size: 22,
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, color: AdnColors.border),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 52),
+            child: Column(
+              children: [
+                Container(
+                  width: 74,
+                  height: 74,
+                  decoration: BoxDecoration(
+                    color: AdnColors.turquoise.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: const Icon(
+                    Icons.domain_disabled_outlined,
+                    color: AdnColors.turquoise,
+                    size: 35,
+                  ),
+                ),
+                const SizedBox(height: 19),
+                const Text(
+                  'No hay empresas registradas',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: AdnColors.white,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 480),
+                  child: const Text(
+                    'Cuando existan empresas reales, '
+                    'aqu\u00ed se podr\u00e1 consultar '
+                    'su estado administrativo, '
+                    'suscripci\u00f3n y acciones disponibles.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: AdnColors.muted,
+                      fontSize: 12,
+                      height: 1.7,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================================
+// REGLAS DE CONTROL
+// ============================================================
+
+class _StatusRules extends StatelessWidget {
+  const _StatusRules();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(21),
+      decoration: BoxDecoration(
+        color: AdnColors.panel,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AdnColors.border),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Reglas de control',
+            style: TextStyle(
+              color: AdnColors.white,
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Las transiciones se aplicar\u00e1n '
+            'desde el servidor cuando exista '
+            'una empresa registrada.',
+            style: TextStyle(color: AdnColors.muted, fontSize: 12, height: 1.6),
+          ),
+          SizedBox(height: 22),
+          _RuleRow(
+            icon: Icons.play_circle_outline_rounded,
+            title: 'Activar',
+            description:
+                'Una empresa pendiente podr\u00e1 '
+                'activarse cuando su suscripci\u00f3n '
+                'permita el acceso.',
+          ),
+          SizedBox(height: 19),
+          _RuleRow(
+            icon: Icons.pause_circle_outline_rounded,
+            title: 'Suspender',
+            description:
+                'Una empresa activa podr\u00e1 '
+                'suspenderse sin borrar sus datos.',
+          ),
+          SizedBox(height: 19),
+          _RuleRow(
+            icon: Icons.restart_alt_rounded,
+            title: 'Reactivar',
+            description:
+                'Una empresa suspendida podr\u00e1 '
+                'reactivarse si cumple las '
+                'condiciones de suscripci\u00f3n.',
+          ),
+          SizedBox(height: 19),
+          _RuleRow(
+            icon: Icons.archive_outlined,
+            title: 'Archivar',
+            description:
+                'La empresa saldr\u00e1 de '
+                'la operaci\u00f3n habitual. '
+                'Sus registros se conservar\u00e1n.',
+          ),
+          SizedBox(height: 19),
+          _RuleRow(
+            key: Key('company_status_restore_rule'),
+            icon: Icons.unarchive_outlined,
+            title: 'Restaurar',
+            description:
+                'Una empresa archivada regresar\u00e1 '
+                'como suspendida. Su reactivaci\u00f3n '
+                'requerir\u00e1 una nueva verificaci\u00f3n.',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RuleRow extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String description;
+
+  const _RuleRow({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.description,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 21, color: AdnColors.turquoiseLight),
+        const SizedBox(width: 13),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  color: AdnColors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                description,
+                style: const TextStyle(
+                  color: AdnColors.muted,
+                  fontSize: 12,
+                  height: 1.6,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ============================================================
+// ESTADO ADMINISTRATIVO VS. SUSCRIPCION
+// ============================================================
+
+class _AccessNotice extends StatelessWidget {
+  const _AccessNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AdnColors.turquoise.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AdnColors.turquoise.withValues(alpha: 0.20)),
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.security_rounded,
+            color: AdnColors.turquoiseLight,
+            size: 23,
+          ),
+          SizedBox(width: 13),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Acceso efectivo a la plataforma',
+                  style: TextStyle(
+                    color: AdnColors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                SizedBox(height: 9),
+                Text(
+                  'El estado administrativo y la '
+                  'suscripci\u00f3n son controles '
+                  'independientes. Para permitir '
+                  'el acceso, ambos deber\u00e1n '
+                  'cumplir las condiciones definidas. '
+                  'El servidor ser\u00e1 responsable '
+                  'de verificarlo.',
+                  style: TextStyle(
+                    color: AdnColors.muted,
+                    fontSize: 12,
+                    height: 1.7,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

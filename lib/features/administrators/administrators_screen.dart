@@ -1,0 +1,864 @@
+import 'dart:math' as math;
+
+import 'package:flutter/material.dart';
+
+import '../../core/adn_colors.dart';
+
+// ============================================================
+// ADN PUBLICIDAD SOFTWARE MASTER
+// ADMINISTRADORES DE INSTANCIAS DE SOFTWARE
+// ============================================================
+
+class AdministratorsScreen extends StatelessWidget {
+  const AdministratorsScreen({super.key});
+
+  Future<void> _openForm(BuildContext context) async {
+    final validated = await showDialog<bool>(
+      context: context,
+      builder: (_) => const AdministratorFormDialog(),
+    );
+
+    if (!context.mounted || validated != true) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: AdnColors.panel,
+        duration: Duration(seconds: 5),
+        content: Text(
+          'Los datos son v\u00e1lidos, pero no se ha '
+          'creado ninguna cuenta. Para registrar un '
+          'administrador primero debemos vincularlo '
+          'a una empresa real.',
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final mobile = constraints.maxWidth < 620;
+        final padding = mobile ? 18.0 : 29.0;
+        final availableWidth = constraints.maxWidth - padding * 2;
+
+        final columns = availableWidth >= 900
+            ? 3
+            : availableWidth >= 530
+            ? 2
+            : 1;
+
+        final cardWidth = (availableWidth - 16 * (columns - 1)) / columns;
+
+        return SingleChildScrollView(
+          padding: EdgeInsets.all(padding),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (mobile)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const _AdministratorsHeading(),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: _NewAdministratorButton(
+                        onPressed: () => _openForm(context),
+                      ),
+                    ),
+                  ],
+                )
+              else
+                Row(
+                  children: [
+                    const Expanded(child: _AdministratorsHeading()),
+                    const SizedBox(width: 16),
+                    _NewAdministratorButton(
+                      onPressed: () => _openForm(context),
+                    ),
+                  ],
+                ),
+
+              const SizedBox(height: 27),
+
+              // INDICADORES
+              Wrap(
+                spacing: 16,
+                runSpacing: 16,
+                children: [
+                  _AdministratorMetric(
+                    width: cardWidth,
+                    title: 'Administradores registrados',
+                    icon: Icons.manage_accounts_rounded,
+                    color: AdnColors.turquoise,
+                  ),
+                  _AdministratorMetric(
+                    width: cardWidth,
+                    title: 'Administradores activos',
+                    icon: Icons.verified_user_rounded,
+                    color: Color(0xFF22C55E),
+                  ),
+                  _AdministratorMetric(
+                    width: cardWidth,
+                    title: 'Accesos suspendidos',
+                    icon: Icons.person_off_rounded,
+                    color: AdnColors.coral,
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 24),
+
+              // AVISO DE DESARROLLO
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AdnColors.turquoise.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: AdnColors.turquoise.withValues(alpha: 0.18),
+                  ),
+                ),
+                child: const Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.info_outline_rounded,
+                      color: AdnColors.turquoiseLight,
+                      size: 21,
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Los administradores deben estar '
+                        'vinculados a una empresa. '
+                        'Actualmente no hay empresas '
+                        'registradas ni conexi\u00f3n con '
+                        'el servidor. El formulario '
+                        'solamente permite validar datos.',
+                        style: TextStyle(
+                          color: AdnColors.white,
+                          fontSize: 12,
+                          height: 1.6,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // DIRECTORIO
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: AdnColors.panel,
+                  borderRadius: BorderRadius.circular(19),
+                  border: Border.all(color: AdnColors.border),
+                ),
+                child: Column(
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.all(22),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Directorio de administradores',
+                              style: TextStyle(
+                                color: AdnColors.white,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                          Icon(
+                            Icons.people_alt_outlined,
+                            color: AdnColors.muted,
+                            size: 22,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const Divider(height: 1, color: AdnColors.border),
+
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 55,
+                      ),
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 76,
+                            height: 76,
+                            decoration: BoxDecoration(
+                              color: AdnColors.turquoise.withValues(
+                                alpha: 0.08,
+                              ),
+                              borderRadius: BorderRadius.circular(19),
+                            ),
+                            child: const Icon(
+                              Icons.manage_accounts_rounded,
+                              size: 36,
+                              color: AdnColors.turquoise,
+                            ),
+                          ),
+
+                          const SizedBox(height: 19),
+
+                          const Text(
+                            'No hay administradores para mostrar',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: AdnColors.white,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+
+                          const SizedBox(height: 11),
+
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 445),
+                            child: const Text(
+                              'Cuando registremos empresas '
+                              'y conectemos el servidor, '
+                              'aqu\u00ed aparecer\u00e1n sus '
+                              'administradores, correos, '
+                              'empresas asignadas y estados.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: AdnColors.muted,
+                                fontSize: 12,
+                                height: 1.7,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ============================================================
+// ENCABEZADO
+// ============================================================
+
+class _AdministratorsHeading extends StatelessWidget {
+  const _AdministratorsHeading();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Administradores',
+          style: TextStyle(
+            color: AdnColors.white,
+            fontSize: 28,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.5,
+          ),
+        ),
+        SizedBox(height: 7),
+        Text(
+          'Gesti\u00f3n de los responsables '
+          'de cada instancia de software.',
+          style: TextStyle(color: AdnColors.muted, fontSize: 13),
+        ),
+      ],
+    );
+  }
+}
+
+// ============================================================
+// BOTON NUEVO ADMINISTRADOR
+// ============================================================
+
+class _NewAdministratorButton extends StatelessWidget {
+  final VoidCallback onPressed;
+
+  const _NewAdministratorButton({required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton.icon(
+      onPressed: onPressed,
+      icon: const Icon(Icons.person_add_alt_1_rounded, size: 19),
+      label: const Text('Nuevo administrador'),
+      style: FilledButton.styleFrom(
+        backgroundColor: AdnColors.turquoise,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 17),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+      ),
+    );
+  }
+}
+
+// ============================================================
+// TARJETAS DE INDICADORES
+// ============================================================
+
+class _AdministratorMetric extends StatelessWidget {
+  final double width;
+  final String title;
+  final IconData icon;
+  final Color color;
+
+  const _AdministratorMetric({
+    required this.width,
+    required this.title,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AdnColors.panel,
+        borderRadius: BorderRadius.circular(17),
+        border: Border.all(color: AdnColors.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: color, size: 23),
+          ),
+
+          const SizedBox(width: 14),
+
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: AdnColors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 7),
+                const Text(
+                  'Sin conectar',
+                  style: TextStyle(color: AdnColors.muted, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================================
+// FORMULARIO PRELIMINAR DE ADMINISTRADOR
+// ============================================================
+
+class AdministratorFormDialog extends StatefulWidget {
+  const AdministratorFormDialog({super.key});
+
+  @override
+  State<AdministratorFormDialog> createState() =>
+      _AdministratorFormDialogState();
+}
+
+class _AdministratorFormDialogState extends State<AdministratorFormDialog> {
+  final _formKey = GlobalKey<FormState>();
+
+  final _name = TextEditingController();
+  final _email = TextEditingController();
+  final _phone = TextEditingController();
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _email.dispose();
+    _phone.dispose();
+    super.dispose();
+  }
+
+  // ==========================================================
+  // VALIDACIONES
+  // ==========================================================
+
+  String? _validateName(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Este campo es obligatorio.';
+    }
+
+    return null;
+  }
+
+  String? _validateEmail(String? value) {
+    final email = value?.trim() ?? '';
+
+    if (email.isEmpty) {
+      return 'Ingresa un correo electr\u00f3nico.';
+    }
+
+    if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email)) {
+      return 'Ingresa un correo electr\u00f3nico v\u00e1lido.';
+    }
+
+    return null;
+  }
+
+  String? _validatePhone(String? value) {
+    final phone = value?.trim() ?? '';
+
+    // El telefono es opcional.
+    if (phone.isEmpty) {
+      return null;
+    }
+
+    final digits = phone.replaceAll(RegExp(r'\D'), '');
+
+    if (digits.length < 8 || digits.length > 15) {
+      return 'Ingresa un tel\u00e9fono v\u00e1lido.';
+    }
+
+    return null;
+  }
+
+  // ==========================================================
+  // ESTILOS DE CAMPOS
+  // ==========================================================
+
+  InputDecoration _decoration({required String hint, required IconData icon}) {
+    OutlineInputBorder border(Color color) {
+      return OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: color),
+      );
+    }
+
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(color: AdnColors.muted, fontSize: 12),
+      prefixIcon: Icon(icon, color: AdnColors.muted, size: 20),
+      filled: true,
+      fillColor: AdnColors.background,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      enabledBorder: border(AdnColors.border),
+      focusedBorder: border(AdnColors.turquoise),
+      errorBorder: border(AdnColors.coral),
+      focusedErrorBorder: border(AdnColors.coral),
+    );
+  }
+
+  Widget _label(String value, {bool required = false}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 9),
+      child: Row(
+        children: [
+          Flexible(
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: AdnColors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+
+          if (required) ...[
+            const SizedBox(width: 4),
+            const Text(
+              '*',
+              style: TextStyle(
+                color: AdnColors.coral,
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _input({
+    required Key key,
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    required String? Function(String?) validator,
+    bool required = false,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _label(label, required: required),
+
+        TextFormField(
+          key: key,
+          controller: controller,
+          keyboardType: keyboardType,
+          textInputAction: TextInputAction.next,
+          autocorrect: false,
+          validator: validator,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
+          style: const TextStyle(color: AdnColors.white, fontSize: 13),
+          decoration: _decoration(hint: hint, icon: icon),
+        ),
+      ],
+    );
+  }
+
+  // ==========================================================
+  // CAMPO DE EMPRESA PENDIENTE
+  // ==========================================================
+
+  Widget _companyField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _label('Empresa asignada', required: true),
+
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 17),
+          decoration: BoxDecoration(
+            color: AdnColors.background,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AdnColors.border),
+          ),
+          child: const Row(
+            children: [
+              Icon(Icons.business_outlined, size: 20, color: AdnColors.muted),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Sin empresas registradas',
+                  style: TextStyle(color: AdnColors.muted, fontSize: 12),
+                ),
+              ),
+              Icon(
+                Icons.lock_outline_rounded,
+                size: 18,
+                color: AdnColors.muted,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _pair({
+    required Widget first,
+    required Widget second,
+    required bool twoColumns,
+  }) {
+    if (twoColumns) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: first),
+          const SizedBox(width: 16),
+          Expanded(child: second),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [first, const SizedBox(height: 18), second],
+    );
+  }
+
+  void _validate() {
+    FocusScope.of(context).unfocus();
+
+    if (_formKey.currentState?.validate() != true) {
+      return;
+    }
+
+    // Solo valida el formulario.
+    // No registra administradores ni crea usuarios.
+    Navigator.of(context).pop(true);
+  }
+
+  // ==========================================================
+  // FORMULARIO RESPONSIVE
+  // ==========================================================
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final keyboardHeight = MediaQuery.viewInsetsOf(context).bottom;
+
+    final availableHeight = size.height - keyboardHeight - 36;
+
+    final dialogHeight = math.min(650.0, math.max(260.0, availableHeight));
+
+    final mobile = size.width < 620;
+
+    return Dialog(
+      backgroundColor: AdnColors.panel,
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: mobile ? 12 : 24,
+        vertical: 18,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: AdnColors.border),
+      ),
+      child: SizedBox(
+        width: 740,
+        height: dialogHeight,
+        child: Padding(
+          padding: EdgeInsets.all(mobile ? 16 : 24),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: AdnColors.turquoise.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.manage_accounts_rounded,
+                      color: AdnColors.turquoiseLight,
+                    ),
+                  ),
+
+                  const SizedBox(width: 12),
+
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Nuevo administrador',
+                          style: TextStyle(
+                            color: AdnColors.white,
+                            fontSize: 19,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        SizedBox(height: 5),
+                        Text(
+                          'Datos iniciales del responsable',
+                          style: TextStyle(
+                            color: AdnColors.muted,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  IconButton(
+                    tooltip: 'Cerrar',
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      color: AdnColors.muted,
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 18),
+
+              const Divider(height: 1, color: AdnColors.border),
+
+              Expanded(
+                child: Form(
+                  key: _formKey,
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final twoColumns = constraints.maxWidth >= 610;
+
+                      return SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(vertical: 21),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Datos del administrador',
+                              style: TextStyle(
+                                color: AdnColors.white,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+
+                            const SizedBox(height: 19),
+
+                            _pair(
+                              twoColumns: twoColumns,
+                              first: _input(
+                                key: const Key('admin_name'),
+                                controller: _name,
+                                label: 'Nombre completo',
+                                hint: 'Nombre y apellido',
+                                icon: Icons.person_outline_rounded,
+                                required: true,
+                                validator: _validateName,
+                              ),
+                              second: _input(
+                                key: const Key('admin_email'),
+                                controller: _email,
+                                label: 'Correo electr\u00f3nico',
+                                hint: 'administrador@empresa.com',
+                                icon: Icons.alternate_email_rounded,
+                                required: true,
+                                keyboardType: TextInputType.emailAddress,
+                                validator: _validateEmail,
+                              ),
+                            ),
+
+                            const SizedBox(height: 19),
+
+                            _pair(
+                              twoColumns: twoColumns,
+                              first: _input(
+                                key: const Key('admin_phone'),
+                                controller: _phone,
+                                label: 'Tel\u00e9fono',
+                                hint: 'Ej. 9999-9999',
+                                icon: Icons.phone_outlined,
+                                keyboardType: TextInputType.phone,
+                                validator: _validatePhone,
+                              ),
+                              second: _companyField(),
+                            ),
+
+                            const SizedBox(height: 24),
+
+                            const Divider(color: AdnColors.border),
+
+                            const SizedBox(height: 16),
+
+                            const Text(
+                              'Activaci\u00f3n de cuenta',
+                              style: TextStyle(
+                                color: AdnColors.white,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+
+                            const SizedBox(height: 15),
+
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: AdnColors.turquoise.withValues(
+                                  alpha: 0.06,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: AdnColors.turquoise.withValues(
+                                    alpha: 0.18,
+                                  ),
+                                ),
+                              ),
+                              child: const Text(
+                                'Cada administrador deber\u00e1 '
+                                'estar asociado a una empresa. '
+                                'Cuando conectemos el servidor, '
+                                'la activaci\u00f3n de su cuenta '
+                                'se realizar\u00e1 mediante '
+                                'un correo seguro para establecer '
+                                'su propia contrase\u00f1a. '
+                                'Esta pantalla todav\u00eda '
+                                'no registra usuarios.',
+                                style: TextStyle(
+                                  color: AdnColors.white,
+                                  fontSize: 12,
+                                  height: 1.6,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+
+              const Divider(height: 1, color: AdnColors.border),
+
+              const SizedBox(height: 16),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AdnColors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        side: const BorderSide(color: AdnColors.border),
+                      ),
+                      child: const Text('Cancelar'),
+                    ),
+                  ),
+
+                  const SizedBox(width: 12),
+
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: _validate,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AdnColors.turquoise,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: const Text(
+                        'Validar datos',
+                        style: TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
